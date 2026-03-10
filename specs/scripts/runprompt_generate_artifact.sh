@@ -34,7 +34,15 @@ fi
 
 mkdir -p "$(dirname "${output_path}")"
 
-input_json="$(python3 -c 'import json,sys; print(json.dumps({"artifact_type": sys.argv[1], "requirements": sys.argv[2]}, ensure_ascii=False))' "${artifact_type}" "${requirements}")"
+input_json="$(python3 - "${artifact_type}" "${requirements}" <<'PY'
+import json
+import sys
+
+artifact_type = sys.argv[1]
+requirements = sys.argv[2]
+print(json.dumps({"artifact_type": artifact_type, "requirements": requirements}, ensure_ascii=False))
+PY
+)"
 
 generated_content="$(runprompt "${prompt_file}" "${input_json}")"
 printf '%s\n' "${generated_content}" > "${output_path}"
