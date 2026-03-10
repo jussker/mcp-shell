@@ -9,7 +9,7 @@ Requested requirements:
 
 Return ONLY the final file content, with no markdown fences and no extra explanation.
 
-Rules by artifact_type:
-- script: produce a production-ready bash script with `#!/usr/bin/env bash` and `set -euo pipefail`.
-- mcp-shell-yaml: produce a valid single-tool mcp-shell YAML spec using TSDoc in `tool.description`.
-- runprompt-prompt: produce a valid runprompt `.prompt` file with frontmatter and template body.
+You MUST follow the artifact type specification below. If any requirement conflicts, this specification takes precedence for output format and structure.
+
+Artifact type specification:
+{{type_spec}}

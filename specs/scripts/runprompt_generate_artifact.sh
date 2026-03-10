@@ -26,21 +26,50 @@ fi
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 prompt_file="${script_dir}/../prompts/runprompt/generate_artifact.prompt"
+type_specs_dir="${script_dir}/../prompts/runprompt/type-specs"
 
 if [[ ! -f "${prompt_file}" ]]; then
   echo "prompt file not found: ${prompt_file}" >&2
   exit 2
 fi
 
-mkdir -p "$(dirname "${output_path}")"
+case "${artifact_type}" in
+  script)
+    type_spec_file="${type_specs_dir}/script.spec.md"
+    ;;
+  mcp-shell-yaml)
+    type_spec_file="${type_specs_dir}/mcp-shell-yaml.spec.md"
+    ;;
+  runprompt-prompt)
+    type_spec_file="${type_specs_dir}/runprompt-prompt.spec.md"
+    ;;
+esac
 
-input_json="$(python3 - "${artifact_type}" "${requirements}" <<'PY'
+if [[ ! -f "${type_spec_file}" ]]; then
+  echo "artifact type spec file not found: ${type_spec_file}" >&2
+  exit 2
+fi
+
+mkdir -p "$(dirname "${output_path}")"
+type_spec="$(cat "${type_spec_file}")"
+
+input_json="$(python3 - "${artifact_type}" "${requirements}" "${type_spec}" <<'PY'
 import json
 import sys
 
 artifact_type = sys.argv[1]
 requirements = sys.argv[2]
-print(json.dumps({"artifact_type": artifact_type, "requirements": requirements}, ensure_ascii=False))
+type_spec = sys.argv[3]
+print(
+    json.dumps(
+        {
+            "artifact_type": artifact_type,
+            "requirements": requirements,
+            "type_spec": type_spec,
+        },
+        ensure_ascii=False,
+    )
+)
 PY
 )"
 

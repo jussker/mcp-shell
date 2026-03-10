@@ -85,6 +85,10 @@ execution:
 `runprompt__generate_artifact.yaml` 使用：
 
 - `specs/prompts/runprompt/generate_artifact.prompt`（runprompt 提示词模板）
+- `specs/prompts/runprompt/type-specs/`（按 artifact_type 拆分的生成约束）
+  - `script.spec.md`
+  - `mcp-shell-yaml.spec.md`
+  - `runprompt-prompt.spec.md`（基于 dotprompt frontmatter/template/picoschema 参考合并）
 - `specs/scripts/runprompt_generate_artifact.sh`（调用 runprompt 并写入目标文件）
 
 ## 4) 运行方式
