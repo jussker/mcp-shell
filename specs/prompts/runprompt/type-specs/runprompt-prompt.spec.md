@@ -1,23 +1,27 @@
-# Artifact Spec: runprompt-prompt (merged from dotprompt references)
+# Artifact Spec: runprompt-prompt (dotprompt-compatible)
 
-Goal: produce one valid `.prompt` file compatible with runprompt and aligned with Dotprompt concepts.
+Goal: produce one valid executable Dotprompt `.prompt` file.
 
 Required structure:
-1. File SHOULD start with YAML frontmatter between two `---` lines.
-2. The template body MUST appear after frontmatter.
-3. Output MUST be plain prompt file text only (no markdown fences, no explanation).
+1. File MUST start with YAML frontmatter and opening `---` on line 1.
+2. Frontmatter MUST be closed by another `---` line before the template body.
+3. Frontmatter MUST include `model` key.
+4. The template body MUST exist after frontmatter (non-empty prompt text).
+5. Output MUST be plain prompt file text only (no markdown fences, no explanation).
 
-Frontmatter guidance (Dotprompt-aligned):
-- Common optional keys: `name`, `variant`, `model`, `tools`, `config`, `input`, `output`, `metadata`.
-- `input.schema` and `output.schema` SHOULD use picoschema-style fields when structured typing is needed.
-- `output.format` may be `json` or `text`.
+Frontmatter rules (Dotprompt-aligned):
+- Allowed top-level keys include: `name`, `variant`, `model`, `tools`, `config`, `input`, `output`, `metadata`.
+- When `input` is present, prefer `input.schema` using picoschema-style fields (for example: `text: string`).
+- When `output` is present:
+  - `output.format` SHOULD be `json` or `text`.
+  - If `output.format: json`, include `output.schema`.
 
-Template guidance (Dotprompt-aligned Handlebars subset):
-- Variable interpolation: `{{var}}`, nested path: `{{obj.key}}`
-- Conditionals: `{{#if x}}...{{else}}...{{/if}}`, `{{#unless x}}...{{/unless}}`
-- Iteration: `{{#each items}}...{{/each}}`
-- Keep syntax valid and minimal; avoid unsupported custom helpers unless explicitly required.
+Template rules (Dotprompt/Handlebars-aligned):
+- Variable interpolation: `{{var}}`, nested path: `{{obj.key}}`.
+- Conditionals: `{{#if x}}...{{else}}...{{/if}}`, `{{#unless x}}...{{/unless}}`.
+- Iteration: `{{#each items}}...{{/each}}`.
+- Use only valid Handlebars syntax; avoid custom helpers unless explicitly required.
 
-Compatibility constraints for runprompt usage:
-- Prefer variables that can be supplied by runprompt (`ARGS`, `STDIN`, `INPUT`) or JSON input fields.
-- If structured output is requested, include `output.format: json` and a clear `output.schema`.
+Compatibility constraints for mcp-shell runprompt flow:
+- Prefer variables that can be passed through JSON input fields.
+- If generating structured output, keep schema and body instructions consistent.

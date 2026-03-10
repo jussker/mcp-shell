@@ -28,6 +28,41 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 prompt_file="${script_dir}/../prompts/runprompt/generate_artifact.prompt"
 type_specs_dir="${script_dir}/../prompts/runprompt/type-specs"
 
+validate_runprompt_prompt_output() {
+  local content="$1"
+  if [[ -z "${content}" ]]; then
+    echo "runprompt output is empty for runprompt-prompt" >&2
+    return 2
+  fi
+
+  if [[ "${content}" == '```'* || "${content}" == *$'\n```'* ]]; then
+    echo "runprompt-prompt output must not contain markdown fences" >&2
+    return 2
+  fi
+
+  if [[ "${content}" != '---'* ]]; then
+    echo "runprompt-prompt output must start with YAML frontmatter (---)" >&2
+    return 2
+  fi
+
+  local second_delim_line
+  second_delim_line="$(printf '%s\n' "${content}" | awk 'NR>1 && $0=="---"{print NR; exit}')"
+  if [[ -z "${second_delim_line}" ]]; then
+    echo "runprompt-prompt output must contain closing YAML frontmatter delimiter (---)" >&2
+    return 2
+  fi
+
+  if ! printf '%s\n' "${content}" | sed -n "2,$((second_delim_line - 1))p" | grep -Eq '^model:[[:space:]]*[^[:space:]].*$'; then
+    echo "runprompt-prompt frontmatter must include a non-empty model key" >&2
+    return 2
+  fi
+
+  if [[ -z "$(printf '%s\n' "${content}" | sed -n "$((second_delim_line + 1)),\$p" | grep -E '[^[:space:]]' | head -n1)" ]]; then
+    echo "runprompt-prompt output must include non-empty template body after frontmatter" >&2
+    return 2
+  fi
+}
+
 if [[ ! -f "${prompt_file}" ]]; then
   echo "prompt file not found: ${prompt_file}" >&2
   exit 2
@@ -78,5 +113,10 @@ PY
 )"
 
 generated_content="$(runprompt "${prompt_file}" "${input_json}")"
+
+if [[ "${artifact_type}" == "runprompt-prompt" ]]; then
+  validate_runprompt_prompt_output "${generated_content}"
+fi
+
 printf '%s\n' "${generated_content}" > "${output_path}"
 printf 'generated:%s\n' "${output_path}"
