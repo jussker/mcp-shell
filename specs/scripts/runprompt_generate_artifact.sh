@@ -3,10 +3,9 @@ set -euo pipefail
 
 artifact_type="${1:-}"
 requirements="${2:-}"
-output_path="${3:-}"
 
-if [[ -z "${artifact_type}" || -z "${requirements}" || -z "${output_path}" ]]; then
-  echo "usage: runprompt_generate_artifact.sh <artifact_type> <requirements> <output_path>" >&2
+if [[ -z "${artifact_type}" || -z "${requirements}" ]]; then
+  echo "usage: runprompt_generate_artifact.sh <artifact_type> <requirements>" >&2
   exit 2
 fi
 
@@ -19,44 +18,35 @@ case "${artifact_type}" in
     ;;
 esac
 
-if [[ -z "${MCP_SHELL_STORAGE_ROOT:-}" ]]; then
-  echo "MCP_SHELL_STORAGE_ROOT is not configured. Please set MCP_SHELL_STORAGE_ROOT to the allowed output directory root." >&2
+if [[ -z "${MCP_SHELL_SPEC_DIR:-}" ]]; then
+  echo "MCP_SHELL_SPEC_DIR is not configured. Please set MCP_SHELL_SPEC_DIR to an existing spec directory." >&2
   exit 2
 fi
 
-resolve_and_validate_output_path() {
-  python3 - "${MCP_SHELL_STORAGE_ROOT}" "${output_path}" <<'PY'
-import os
-import pathlib
+resolve_output_path() {
+  python3 - "${MCP_SHELL_SPEC_DIR}" "${artifact_type}" <<'PY'
+import datetime
 import sys
+from pathlib import Path
 
-storage_root_raw = sys.argv[1]
-output_path_raw = sys.argv[2]
+spec_dir = Path(sys.argv[1]).resolve(strict=False)
+artifact_type = sys.argv[2]
 
-storage_root = pathlib.Path(storage_root_raw).resolve(strict=False)
-output_path = pathlib.Path(output_path_raw).resolve(strict=False)
+mapping = {
+    "script": ("generated-artifacts/scripts", "sh"),
+    "mcp-shell-yaml": ("generated-artifacts/mcp-shell-yaml", "yaml"),
+    "runprompt-prompt": ("generated-artifacts/runprompt-prompts", "prompt"),
+}
+subdir, ext = mapping[artifact_type]
 
-try:
-    if os.path.commonpath([str(storage_root), str(output_path)]) != str(storage_root):
-        suggested = storage_root / pathlib.Path(output_path_raw).name
-        print(
-            f"output_path must stay within MCP_SHELL_STORAGE_ROOT: {storage_root}. "
-            f"Try output_path under {suggested}",
-            file=sys.stderr,
-        )
-        sys.exit(2)
-except ValueError:
-    print(
-        f"output_path must stay within MCP_SHELL_STORAGE_ROOT: {storage_root}.",
-        file=sys.stderr,
-    )
-    sys.exit(2)
-
+ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+output_path = spec_dir / subdir / f"artifact-{ts}.{ext}"
+output_path.parent.mkdir(parents=True, exist_ok=True)
 print(output_path)
 PY
 }
 
-output_path="$(resolve_and_validate_output_path)"
+output_path="$(resolve_output_path)"
 
 if ! command -v runprompt >/dev/null 2>&1; then
   echo "runprompt command not found in PATH" >&2

@@ -7,7 +7,7 @@ import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js"
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { executeFromSpec } from "./executor.js";
 import { formatExecutionResultForMcp } from "./mcp-response.js";
-import { buildInputSchema, MCP_RESPONSE_MODE_PARAM } from "./schema.js";
+import { appendResponseModeParamDoc, buildInputSchema, MCP_RESPONSE_MODE_PARAM } from "./schema.js";
 import { loadSpecs } from "./spec-loader.js";
 import { parseStartupOptions } from "./startup-options.js";
 import { normalizeTSDocDescription } from "./tsdoc.js";
@@ -32,6 +32,7 @@ async function resolveServerVersion(): Promise<string> {
 async function main(): Promise<void> {
   const startupOptions = parseStartupOptions();
   const specDir = startupOptions.specDir;
+  process.env.MCP_SHELL_SPEC_DIR = specDir;
   const specs = await loadSpecs(specDir);
   const version = await resolveServerVersion();
 
@@ -43,10 +44,10 @@ async function main(): Promise<void> {
   for (const spec of specs) {
     server.registerTool(
       spec.tool.name,
-      {
-        description: normalizeTSDocDescription(spec.tool.description),
-        inputSchema: buildInputSchema(spec.tool.input),
-      },
+        {
+          description: appendResponseModeParamDoc(normalizeTSDocDescription(spec.tool.description)),
+          inputSchema: buildInputSchema(spec.tool.input),
+        },
       async (args) => {
         const parsedArgs = args as Record<string, unknown>;
         const responseMode =
