@@ -60,3 +60,40 @@ test("parseStartupOptions rejects invalid port values", () => {
     /Invalid port/,
   );
 });
+
+test("parseStartupOptions exits cleanly for --help", () => {
+  const originalExit = process.exit;
+  const originalWrite = process.stdout.write;
+  let output = "";
+
+  try {
+    process.stdout.write = ((chunk: string | Uint8Array) => {
+      output += chunk.toString();
+      return true;
+    }) as typeof process.stdout.write;
+
+    process.exit = ((code?: number) => {
+      throw new Error(`EXIT:${code ?? 0}`);
+    }) as typeof process.exit;
+
+    assert.throws(() => parseStartupOptions(["--help"], {}, "/repo"), /EXIT:0/);
+    assert.match(output, /Usage: mcp-shell \[options\]/);
+    assert.match(output, /-h, --help/);
+  } finally {
+    process.exit = originalExit;
+    process.stdout.write = originalWrite;
+  }
+});
+
+test("parseStartupOptions exits cleanly for -h", () => {
+  const originalExit = process.exit;
+  try {
+    process.exit = ((code?: number) => {
+      throw new Error(`EXIT:${code ?? 0}`);
+    }) as typeof process.exit;
+
+    assert.throws(() => parseStartupOptions(["-h"], {}, "/repo"), /EXIT:0/);
+  } finally {
+    process.exit = originalExit;
+  }
+});
