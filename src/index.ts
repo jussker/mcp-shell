@@ -13,6 +13,8 @@ import { loadSpecs } from "./spec-loader.js";
 import { parseStartupOptions } from "./startup-options.js";
 import { normalizeTSDocDescription } from "./tsdoc.js";
 
+const MAX_HTTP_BODY_BYTES = 1_048_576;
+
 async function resolveServerVersion(): Promise<string> {
   if (process.env.MCP_SHELL_SERVER_VERSION) {
     return process.env.MCP_SHELL_SERVER_VERSION;
@@ -109,8 +111,7 @@ function matchesPath(req: IncomingMessage, expectedPath: string): boolean {
   if (!req.url) {
     return false;
   }
-  const host = req.headers.host ?? "127.0.0.1";
-  const requestUrl = new URL(req.url, `http://${host}`);
+  const requestUrl = new URL(req.url, "http://localhost");
   return requestUrl.pathname === expectedPath;
 }
 
@@ -124,8 +125,8 @@ async function parseRequestBody(req: IncomingMessage): Promise<unknown> {
   for await (const chunk of req) {
     const buffer = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
     totalLength += buffer.byteLength;
-    if (totalLength > 1_048_576) {
-      throw new Error("Request body exceeds 1MB limit.");
+    if (totalLength > MAX_HTTP_BODY_BYTES) {
+      throw new Error("Request body exceeds 1 MiB limit.");
     }
     chunks.push(buffer);
   }

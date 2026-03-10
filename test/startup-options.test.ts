@@ -23,7 +23,7 @@ test("parseStartupOptions lets args override env values", () => {
       "--port",
       "8080",
       "--http-path",
-      "rpc",
+      "/rpc",
     ],
     {
       MCP_SHELL_TRANSPORT: "stdio",
@@ -39,6 +39,11 @@ test("parseStartupOptions lets args override env values", () => {
   assert.equal(options.specDir, "/tmp/specs");
   assert.equal(options.host, "0.0.0.0");
   assert.equal(options.port, 8080);
+  assert.equal(options.httpPath, "/rpc");
+});
+
+test("parseStartupOptions normalizes http-path when slash is omitted", () => {
+  const options = parseStartupOptions(["--http-path", "rpc"], {}, "/repo");
   assert.equal(options.httpPath, "/rpc");
 });
 

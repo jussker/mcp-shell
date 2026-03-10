@@ -44,8 +44,7 @@ export function parseStartupOptions(
   }
 
   const httpPathRaw = values["http-path"] ?? env.MCP_SHELL_HTTP_PATH ?? "/mcp";
-  const httpPath =
-    httpPathRaw.length === 0 ? "/mcp" : httpPathRaw.startsWith("/") ? httpPathRaw : `/${httpPathRaw}`;
+  const httpPath = normalizeHttpPath(httpPathRaw);
 
   return {
     transport: transportRaw,
@@ -54,4 +53,14 @@ export function parseStartupOptions(
     port,
     httpPath,
   };
+}
+
+function normalizeHttpPath(rawPath: string): string {
+  if (rawPath.length === 0) {
+    return "/mcp";
+  }
+  if (rawPath.startsWith("/")) {
+    return rawPath;
+  }
+  return `/${rawPath}`;
 }
