@@ -14,11 +14,12 @@ test("formats execution result with explicit status and readable text content", 
   });
 
   assert.equal(result.isError, false);
+  assert.ok(result.content);
   assert.equal(result.content[0]?.type, "text");
   assert.match(result.content[0]?.text ?? "", /status: success/);
   assert.match(result.content[0]?.text ?? "", /stdout:\nok/);
   assert.match(result.content[0]?.text ?? "", /stderr: \(empty\)/);
-  assert.equal(result.structuredContent.status, "success");
+  assert.equal("structuredContent" in result, false);
 });
 
 test("marks failed execution as MCP tool error", () => {
@@ -33,5 +34,26 @@ test("marks failed execution as MCP tool error", () => {
   });
 
   assert.equal(result.isError, true);
+  assert.ok(result.content);
   assert.match(result.content[0]?.text ?? "", /status: error/);
+});
+
+test("returns structuredContent only when structured mode is selected", () => {
+  const result = formatExecutionResultForMcp(
+    {
+      status: "success",
+      exit_code: 0,
+      stdout: "ok",
+      stderr: "",
+      command: "echo ok",
+      execution_time_ms: 12,
+      spec_tool: "echo_tool",
+    },
+    "structuredContent",
+  );
+
+  assert.equal(result.isError, false);
+  assert.equal(result.content.length, 0);
+  assert.ok(result.structuredContent);
+  assert.equal(result.structuredContent.status, "success");
 });
