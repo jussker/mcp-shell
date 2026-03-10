@@ -119,7 +119,7 @@ uv pip install git+https://github.com/chr15m/runprompt
 pip install "git+https://github.com/chr15m/runprompt.git"
 ```
 
-如未安装会报错：`runprompt command not found in PATH`（exit code `127`）。
+如未安装会报错：`runprompt command not found in PATH`（`exit code 127`）。
 
 ### 4.2 启动参数与环境变量
 
