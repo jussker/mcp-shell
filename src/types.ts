@@ -33,6 +33,12 @@ export interface CommandConfig {
   args?: string[];
 }
 
+export interface ScriptConfig {
+  path: string;
+  args?: string[];
+  interpreter?: string;
+}
+
 export interface ShellToolSpec {
   apiVersion: "v1";
   tool: {
@@ -47,7 +53,11 @@ export interface ShellToolSpec {
     workingDirectory?: string;
     timeoutMs?: number;
     maxOutputBytes?: number;
-    command: CommandConfig;
+    command?: CommandConfig;
+    script?: ScriptConfig;
+  };
+  __meta?: {
+    specDir: string;
   };
 }
 

@@ -48,12 +48,18 @@ execution:
   workingDirectory: /tmp/work
   timeoutMs: 30000
   maxOutputBytes: 1048576
+  # 二选一：command 或 script
   command:
     executable: ffmpeg
     args:
       - -i
       - "{{input}}"
       - "{{output}}"
+  # script:
+  #   path: ./scripts/echo_script.sh
+  #   interpreter: bash
+  #   args:
+  #     - "{{arg1}}"
 ```
 
 设计要点：
@@ -63,15 +69,17 @@ execution:
 - `execution.env.fromParams` 支持参数到环境变量映射；
 - `execution.shell` 支持常见 shell 名称与自定义路径；
 - `command.args` 支持 `{{param}}` 模板替换；
+- `execution.script` 支持脚本路径与可选解释器（相对路径基于 YAML 文件所在目录解析）；
 - 每个 YAML 只定义一个工具，利于审计与权限控制。
 
 ## 3) ffmpeg 预设工具
 
-已提供 3 个 YAML 预设（`/specs`）：
+已提供 4 个 YAML 预设（`/specs`）：
 
 - `ffmpeg__extract_audio.yaml`：抽取音频
 - `ffmpeg__transcode_mp4.yaml`：转码为 H.264/AAC MP4
 - `ffmpeg__probe_streams.yaml`：使用 `ffprobe` 输出媒体元数据
+- `shell__run_script_echo.yaml`：通过 YAML 配置执行脚本示例
 
 ## 4) 运行方式
 
