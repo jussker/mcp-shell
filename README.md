@@ -87,8 +87,8 @@ execution:
 - `specs/scripts/runprompt_generate_artifact.sh`（调用 runprompt 并写入目标文件）
 - `model` / `base_url` / `api_key` 不再作为工具参数输入，改为环境变量配置：
   - `RUNPROMPT_MODEL`（兼容 `MODEL`）
-  - `RUNPROMPT_BASE_URL`（兼容 `BASE_URL`）
-  - `RUNPROMPT_OPENROUTER_API_KEY`（兼容 `OPENROUTER_API_KEY`、`API_KEY`）
+  - `RUNPROMPT_BASE_URL`（兼容 `OPENAI_BASE_URL`、`OPENAI_API_BASE`、`BASE_URL`；其中 `BASE_URL` 仅作为兜底）
+  - `RUNPROMPT_OPENROUTER_API_KEY`（兼容 `OPENROUTER_API_KEY`、`API_KEY`；其中 `API_KEY` 仅作为兜底）
 - `output_path` 不再作为 `runprompt__generate_artifact` 输入参数暴露；脚本会自动写入 `MCP_SHELL_SPEC_DIR/generated-artifacts/<artifact_type>/` 目录。
 
 ## 4) 运行方式
