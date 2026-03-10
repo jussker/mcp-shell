@@ -12,6 +12,9 @@ async function loadRunpromptSpec() {
   const specs = await loadSpecs(path.join(repoRoot, "specs"));
   const spec = specs.find((item) => item.tool.name === "runprompt__generate_artifact");
   assert.ok(spec, "runprompt__generate_artifact spec should exist");
+  assert.ok(!("model" in spec.tool.input.properties));
+  assert.ok(!("base_url" in spec.tool.input.properties));
+  assert.ok(!("openrouter_api_key" in spec.tool.input.properties));
   return spec;
 }
 
@@ -74,6 +77,64 @@ test("runprompt wrapper injects the selected type spec into runprompt input", as
     assert.match(payload.type_spec, /set -euo pipefail/);
   } finally {
     process.env.PATH = originalPath;
+  }
+});
+
+test("runprompt wrapper supports env-based model/base_url/api_key configuration", async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "mcp-shell-runprompt-"));
+  const mockBinDir = path.join(tempDir, "bin");
+  const outputPath = path.join(tempDir, "out", "generated.txt");
+
+  await mkdir(mockBinDir, { recursive: true });
+  const mockRunpromptPath = path.join(mockBinDir, "runprompt");
+  await writeFile(
+    mockRunpromptPath,
+    "#!/usr/bin/env bash\nset -euo pipefail\nprintf '{\"model\":\"%s\",\"base_url\":\"%s\",\"api_key\":\"%s\"}\\n' \"${RUNPROMPT_MODEL:-}\" \"${RUNPROMPT_BASE_URL:-}\" \"${RUNPROMPT_OPENROUTER_API_KEY:-}\"\n",
+    "utf8",
+  );
+  await chmod(mockRunpromptPath, 0o755);
+
+  const spec = await loadRunpromptSpec();
+  const originalPath = process.env.PATH ?? "";
+  const originalModel = process.env.MODEL;
+  const originalBaseUrl = process.env.BASE_URL;
+  const originalApiKey = process.env.API_KEY;
+  process.env.PATH = `${mockBinDir}:${originalPath}`;
+  process.env.MODEL = "openrouter/deepseek/deepseek-v3.2";
+  process.env.BASE_URL = "https://openrouter.ai/api/v1";
+  process.env.API_KEY = "test-api-key";
+
+  try {
+    const result = await executeFromSpec(spec, {
+      artifact_type: "script",
+      requirements: "generate a shell script",
+      output_path: outputPath,
+    });
+
+    assert.equal(result.status, "success");
+    const outputContent = await readFile(outputPath, "utf8");
+    const payload = JSON.parse(outputContent);
+    assert.equal(payload.model, "openrouter/deepseek/deepseek-v3.2");
+    assert.equal(payload.base_url, "https://openrouter.ai/api/v1");
+    assert.equal(payload.api_key, "test-api-key");
+  } finally {
+    process.env.PATH = originalPath;
+
+    if (originalModel === undefined) {
+      delete process.env.MODEL;
+    } else {
+      process.env.MODEL = originalModel;
+    }
+    if (originalBaseUrl === undefined) {
+      delete process.env.BASE_URL;
+    } else {
+      process.env.BASE_URL = originalBaseUrl;
+    }
+    if (originalApiKey === undefined) {
+      delete process.env.API_KEY;
+    } else {
+      process.env.API_KEY = originalApiKey;
+    }
   }
 });
 

@@ -85,6 +85,10 @@ execution:
   - `mcp-shell-yaml.spec.md`
   - `runprompt-prompt.spec.md`（基于 dotprompt frontmatter/template/picoschema 参考合并）
 - `specs/scripts/runprompt_generate_artifact.sh`（调用 runprompt 并写入目标文件）
+- `model` / `base_url` / `api_key` 不再作为工具参数输入，改为环境变量配置：
+  - `RUNPROMPT_MODEL`（兼容 `MODEL`）
+  - `RUNPROMPT_BASE_URL`（兼容 `BASE_URL`）
+  - `RUNPROMPT_OPENROUTER_API_KEY`（兼容 `OPENROUTER_API_KEY`、`API_KEY`）
 
 ## 4) 运行方式
 
