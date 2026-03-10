@@ -13,9 +13,10 @@ const specDir = path.resolve(process.cwd(), "specs");
 test("loads bundled tool specs", async () => {
   const specs = await loadSpecs(specDir);
   const names = new Set(specs.map((spec) => spec.tool.name));
-  assert.ok(names.has("ffmpeg__extract_audio"));
-  assert.ok(names.has("ffmpeg__probe_streams"));
-  assert.ok(names.has("ffmpeg__transcode_mp4"));
+  assert.ok(names.has("ffmpeg__process_video_for_llm"));
+  assert.ok(names.has("ffmpeg__process_audio_for_stt"));
+  assert.ok(names.has("ffmpeg__extract_frames_for_vision"));
+  assert.ok(names.has("ffmpeg__create_video_summary"));
   assert.ok(names.has("runprompt__generate_artifact"));
 });
 
