@@ -12,7 +12,9 @@ async function loadRunpromptSpec() {
   const specs = await loadSpecs(path.join(repoRoot, "specs"));
   const spec = specs.find((item) => item.tool.name === "runprompt__generate_artifact");
   assert.ok(spec, "runprompt__generate_artifact spec should exist");
-  assert.deepEqual(spec.execution.env?.static ?? {}, {});
+  assert.ok(spec.execution.env);
+  assert.ok(Object.prototype.hasOwnProperty.call(spec.execution.env, "static"));
+  assert.deepEqual(spec.execution.env.static, {});
   assert.ok(!("model" in spec.tool.input.properties));
   assert.ok(!("base_url" in spec.tool.input.properties));
   assert.ok(!("openrouter_api_key" in spec.tool.input.properties));
