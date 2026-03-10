@@ -93,6 +93,22 @@ if [[ ! -f "${type_spec_file}" ]]; then
   exit 2
 fi
 
+if [[ -n "${MODEL:-}" && -z "${RUNPROMPT_MODEL:-}" ]]; then
+  export RUNPROMPT_MODEL="${MODEL}"
+fi
+
+if [[ -n "${BASE_URL:-}" && -z "${RUNPROMPT_BASE_URL:-}" ]]; then
+  export RUNPROMPT_BASE_URL="${BASE_URL}"
+fi
+
+if [[ -n "${API_KEY:-}" && -z "${RUNPROMPT_OPENROUTER_API_KEY:-}" ]]; then
+  export RUNPROMPT_OPENROUTER_API_KEY="${API_KEY}"
+fi
+
+if [[ -n "${OPENROUTER_API_KEY:-}" && -z "${RUNPROMPT_OPENROUTER_API_KEY:-}" ]]; then
+  export RUNPROMPT_OPENROUTER_API_KEY="${OPENROUTER_API_KEY}"
+fi
+
 mkdir -p "$(dirname "${output_path}")"
 type_spec="$(cat "${type_spec_file}")"
 
