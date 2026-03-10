@@ -158,6 +158,83 @@ test("runprompt wrapper supports env-based model/base_url/api_key configuration"
   }
 });
 
+test("runprompt wrapper keeps OPENAI_BASE_URL precedence and OPENROUTER_API_KEY precedence over legacy fallbacks", async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "mcp-shell-runprompt-"));
+  const mockBinDir = path.join(tempDir, "bin");
+
+  await mkdir(mockBinDir, { recursive: true });
+  const mockRunpromptPath = path.join(mockBinDir, "runprompt");
+  await writeFile(
+    mockRunpromptPath,
+    "#!/usr/bin/env bash\nset -euo pipefail\nprintf '{\"runprompt_base_url\":\"%s\",\"runprompt_openrouter_api_key\":\"%s\"}\\n' \"${RUNPROMPT_BASE_URL:-}\" \"${RUNPROMPT_OPENROUTER_API_KEY:-}\"\n",
+    "utf8",
+  );
+  await chmod(mockRunpromptPath, 0o755);
+
+  const spec = await loadRunpromptSpec();
+  const originalPath = process.env.PATH ?? "";
+  const originalSpecDir = process.env.MCP_SHELL_SPEC_DIR;
+  const originalOpenAiBaseUrl = process.env.OPENAI_BASE_URL;
+  const originalOpenAiApiBase = process.env.OPENAI_API_BASE;
+  const originalBaseUrl = process.env.BASE_URL;
+  const originalApiKey = process.env.API_KEY;
+  const originalOpenRouterApiKey = process.env.OPENROUTER_API_KEY;
+  process.env.PATH = `${mockBinDir}:${originalPath}`;
+  process.env.MCP_SHELL_SPEC_DIR = tempDir;
+  process.env.OPENAI_BASE_URL = "https://openai.example/v1";
+  process.env.BASE_URL = "https://legacy-base.example/v1";
+  process.env.API_KEY = "legacy-api-key";
+  process.env.OPENROUTER_API_KEY = "preferred-openrouter-key";
+  delete process.env.OPENAI_API_BASE;
+
+  try {
+    const result = await executeFromSpec(spec, {
+      artifact_type: "script",
+      requirements: "generate a shell script",
+    });
+
+    assert.equal(result.status, "success");
+    const outputPath = extractGeneratedPath(result.stdout);
+    const outputContent = await readFile(outputPath, "utf8");
+    const payload = JSON.parse(outputContent);
+    assert.equal(payload.runprompt_base_url, "");
+    assert.equal(payload.runprompt_openrouter_api_key, "preferred-openrouter-key");
+  } finally {
+    process.env.PATH = originalPath;
+    if (originalSpecDir === undefined) {
+      delete process.env.MCP_SHELL_SPEC_DIR;
+    } else {
+      process.env.MCP_SHELL_SPEC_DIR = originalSpecDir;
+    }
+
+    if (originalOpenAiBaseUrl === undefined) {
+      delete process.env.OPENAI_BASE_URL;
+    } else {
+      process.env.OPENAI_BASE_URL = originalOpenAiBaseUrl;
+    }
+    if (originalOpenAiApiBase === undefined) {
+      delete process.env.OPENAI_API_BASE;
+    } else {
+      process.env.OPENAI_API_BASE = originalOpenAiApiBase;
+    }
+    if (originalBaseUrl === undefined) {
+      delete process.env.BASE_URL;
+    } else {
+      process.env.BASE_URL = originalBaseUrl;
+    }
+    if (originalApiKey === undefined) {
+      delete process.env.API_KEY;
+    } else {
+      process.env.API_KEY = originalApiKey;
+    }
+    if (originalOpenRouterApiKey === undefined) {
+      delete process.env.OPENROUTER_API_KEY;
+    } else {
+      process.env.OPENROUTER_API_KEY = originalOpenRouterApiKey;
+    }
+  }
+});
+
 test("runprompt wrapper rejects invalid dotprompt output for runprompt-prompt artifact", async () => {
   const tempDir = await mkdtemp(path.join(os.tmpdir(), "mcp-shell-runprompt-"));
   const mockBinDir = path.join(tempDir, "bin");
