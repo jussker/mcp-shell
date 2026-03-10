@@ -71,7 +71,7 @@ execution:
   command:
     executable: bash
     args:
-      - -lc
+      - -c
       - |
         set -euo pipefail
 

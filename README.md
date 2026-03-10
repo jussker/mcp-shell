@@ -68,14 +68,14 @@ execution:
 
 ## 3) ffmpeg 预设工具
 
-已提供 6 个 YAML 预设（`/specs`）：
+`/specs` 当前包含如下 YAML 工具定义：
 
 - `ffmpeg__process_video_for_llm.yaml`：视频预处理流水线（裁剪/缩放/降帧/倍速/可选去音频与水印）
 - `ffmpeg__process_audio_for_stt.yaml`：音频预处理流水线（提取片段/降采样/单声道/可选静音移除）
 - `ffmpeg__extract_frames_for_vision.yaml`：视觉抽帧流水线（低帧率或关键帧抽取）
 - `ffmpeg__create_video_summary.yaml`：蒙太奇摘要流水线（多输入采样与拼接）
-- `shell__run_script_echo.yaml`：通过 YAML 配置执行脚本示例
-- `runprompt__generate_artifact.yaml`：通过 `runprompt` 生成脚本 / mcp-shell YAML / runprompt 提示词文件
+- `shell__run_script_echo.yaml`（通用）：通过 YAML 配置执行脚本示例
+- `runprompt__generate_artifact.yaml`（通用）：通过 `runprompt` 生成脚本 / mcp-shell YAML / runprompt 提示词文件
 
 `runprompt__generate_artifact.yaml` 使用：
 

@@ -56,7 +56,7 @@ execution:
   command:
     executable: bash
     args:
-      - -lc
+      - -c
       - |
         set -euo pipefail
 
@@ -76,8 +76,11 @@ execution:
         while IFS= read -r input_path; do
           [ -z "$input_path" ] && continue
           duration_raw="$(ffprobe -v error -show_entries format=duration -of default=nokey=1:noprint_wrappers=1 "$input_path" || echo "0")"
-          duration_int="${duration_raw%.*}"
-          if [ -z "$duration_int" ] || [ "$duration_int" -le 0 ] 2>/dev/null; then
+          if ! [[ "$duration_raw" =~ ^[0-9]+(\.[0-9]+)?$ ]]; then
+            continue
+          fi
+          duration_int="$(node -e 'const d=Number(process.argv[1]); console.log(Number.isFinite(d) ? Math.ceil(d) : 0);' "$duration_raw")"
+          if [ "$duration_int" -le 0 ]; then
             continue
           fi
 
