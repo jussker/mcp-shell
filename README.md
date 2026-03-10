@@ -2,24 +2,7 @@
 
 基于 TypeScript 的 MCP Shell Server：通过 **单文件 YAML 规范** 将具体 shell 命令映射为标准 MCP 工具。
 
-## 1) 原有 Go 版本能力分析
-
-原项目（Go）核心能力：
-
-- 暴露 `shell_exec` MCP 工具，接收 `command`（以及 `base64`）参数。
-- 执行命令并返回结构化结果：`status` / `exit_code` / `stdout` / `stderr` / `execution_time` 等。
-- 支持安全配置（YAML）：
-  - allowlist/blocklist
-  - 正则拦截
-  - 最大执行时长
-  - 最大输出大小
-  - 工作目录
-  - 审计日志开关
-  - 兼容 legacy shell 执行模式
-
-本次重构把“自由命令执行”升级为“**声明式工具暴露**”：每个 YAML 只定义一个 MCP 工具，避免在运行时由模型任意拼接命令。
-
-## 2) mcp-use 依赖与源码阅读
+## 1) mcp-use 依赖与源码阅读
 
 本项目已引入依赖：
 
@@ -29,7 +12,7 @@
 
 > 备注：`mcp-use` npm 包元数据中已包含其仓库地址 `https://github.com/mcp-use/mcp-use.git`，可按需在本地单独拉取该仓库做源码阅读。
 
-## 3) YAML Spec 设计
+## 2) YAML Spec 设计
 
 一个 YAML 定义一个 MCP 工具，结构如下：
 
@@ -82,7 +65,7 @@ execution:
 - `command.args` 支持 `{{param}}` 模板替换；
 - 每个 YAML 只定义一个工具，利于审计与权限控制。
 
-## 4) ffmpeg 预设工具
+## 3) ffmpeg 预设工具
 
 已提供 3 个 YAML 预设（`/specs`）：
 
@@ -90,7 +73,7 @@ execution:
 - `ffmpeg__transcode_mp4.yaml`：转码为 H.264/AAC MP4
 - `ffmpeg__probe_streams.yaml`：使用 `ffprobe` 输出媒体元数据
 
-## 5) 运行方式
+## 4) 运行方式
 
 ```bash
 npm install
@@ -100,7 +83,7 @@ npm start
 
 默认从 `./specs` 加载工具定义；可通过 `MCP_SHELL_SPEC_DIR` 覆盖。
 
-## 6) 测试
+## 5) 测试
 
 ```bash
 npm test
