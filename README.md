@@ -91,7 +91,77 @@ npm start
 
 默认从 `./specs` 加载工具定义；可通过 `MCP_SHELL_SPEC_DIR` 覆盖。
 
-## 5) 测试
+### 4.1 通过 GitHub 仓库直接 `npx -y` 启动（stdio）
+
+支持直接通过 GitHub 仓库安装并启动（会自动执行 `prepare` 构建）：
+
+```bash
+npx -y github:jussker/mcp-shell --transport stdio
+```
+
+### 4.2 启动参数与环境变量
+
+- `--transport` / `MCP_SHELL_TRANSPORT`：`stdio`（默认）或 `streamable-http`
+- `--spec-dir` / `MCP_SHELL_SPEC_DIR`：YAML spec 目录（默认 `./specs`）
+- `--host` / `MCP_SHELL_HTTP_HOST`：`streamable-http` 监听地址（默认 `127.0.0.1`）
+- `--port` / `MCP_SHELL_HTTP_PORT`：`streamable-http` 监听端口（默认 `3001`）
+- `--http-path` / `MCP_SHELL_HTTP_PATH`：`streamable-http` 路径（默认 `/mcp`）
+- `MCP_SHELL_SERVER_NAME`：MCP server 名称（默认 `mcp-shell`）
+- `MCP_SHELL_SERVER_VERSION`：MCP server 版本（默认读取 `package.json` 的 `version`）
+
+示例（HTTP 模式）：
+
+```bash
+npx -y github:jussker/mcp-shell --transport streamable-http --host 127.0.0.1 --port 3001 --http-path /mcp
+```
+
+## 5) mcpServers 配置示例
+
+### 5.1 stdio（推荐给本地 MCP 客户端）
+
+```json
+{
+  "mcpServers": {
+    "mcp-shell": {
+      "command": "npx",
+      "args": ["-y", "github:jussker/mcp-shell", "--transport", "stdio"],
+      "env": {
+        "MCP_SHELL_SPEC_DIR": "/absolute/path/to/specs"
+      }
+    }
+  }
+}
+```
+
+### 5.2 streamable-http（作为 HTTP MCP 服务）
+
+```json
+{
+  "mcpServers": {
+    "mcp-shell-http": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "github:jussker/mcp-shell",
+        "--transport",
+        "streamable-http",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "3001",
+        "--http-path",
+        "/mcp"
+      ],
+      "env": {
+        "MCP_SHELL_SPEC_DIR": "/absolute/path/to/specs",
+        "MCP_SHELL_SERVER_NAME": "mcp-shell-http"
+      }
+    }
+  }
+}
+```
+
+## 6) 测试
 
 ```bash
 npm test
