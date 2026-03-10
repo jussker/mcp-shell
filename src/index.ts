@@ -4,6 +4,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { VERSION as MCP_USE_VERSION } from "mcp-use";
 import { executeFromSpec } from "./executor.js";
+import { formatExecutionResultForMcp } from "./mcp-response.js";
 import { buildInputSchema } from "./schema.js";
 import { loadSpecs } from "./spec-loader.js";
 import { normalizeTSDocDescription } from "./tsdoc.js";
@@ -42,15 +43,7 @@ async function main(): Promise<void> {
       },
       async (args) => {
         const result = await executeFromSpec(spec, args as Record<string, unknown>);
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(result),
-            },
-          ],
-          structuredContent: result,
-        };
+        return formatExecutionResultForMcp(result);
       },
     );
   }

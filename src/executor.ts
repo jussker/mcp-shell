@@ -3,6 +3,15 @@ import type { ExecutionResult, ShellToolSpec } from "./types.js";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_OUTPUT_BYTES = 1_048_576;
+const CONTROL_CHARS_REGEX = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
+
+function escapeControlCharacter(char: string): string {
+  return `\\x${char.charCodeAt(0).toString(16).padStart(2, "0")}`;
+}
+
+export function sanitizeOutputText(content: string): string {
+  return content.replace(CONTROL_CHARS_REGEX, escapeControlCharacter);
+}
 
 function terminateChild(child: ReturnType<typeof spawn>): void {
   child.kill("SIGTERM");
@@ -99,7 +108,7 @@ export async function executeFromSpec(spec: ShellToolSpec, args: Record<string, 
       target: "stdout" | "stderr",
       chunk: Buffer,
     ): void => {
-      const content = chunk.toString("utf8");
+      const content = sanitizeOutputText(chunk.toString("utf8"));
       if (target === "stdout") {
         stdout += content;
         if (Buffer.byteLength(stdout, "utf8") > plan.maxOutputBytes) {
