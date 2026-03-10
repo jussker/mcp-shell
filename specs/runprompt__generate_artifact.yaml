@@ -28,6 +28,8 @@ tool:
 execution:
   shell:
     mode: direct
+  env:
+    static: {}
   timeoutMs: 120000
   maxOutputBytes: 1048576
   script:
