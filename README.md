@@ -39,6 +39,8 @@ execution:
       KEY: VALUE
     fromParams:
       ENV_KEY: inputParamName
+    fromRuntime:
+      TARGET_ENV: SOURCE_ENV_OR_PRIORITY_LIST
   workingDirectory: /tmp/work
   timeoutMs: 30000
   maxOutputBytes: 1048576
@@ -61,6 +63,7 @@ execution:
 - 仅保留 `tool.description` 作为工具描述字段（不再使用 `docstring`），且必须使用 TSDoc 标准；
 - `tool.input` / `tool.output` 声明输入输出结构；
 - `execution.env.fromParams` 支持参数到环境变量映射；
+- `execution.env.fromRuntime` 支持从 MCP 服务运行环境映射变量（支持按优先级列表回退）；
 - `execution.shell` 支持常见 shell 名称与自定义路径；
 - `command.args` 支持 `{{param}}` 模板替换；
 - `execution.script` 支持脚本路径与可选解释器（相对路径基于 YAML 文件所在目录解析）；
@@ -86,9 +89,9 @@ execution:
   - `runprompt-prompt.spec.md`（基于 dotprompt frontmatter/template/picoschema 参考合并）
 - `specs/scripts/runprompt_generate_artifact.sh`（调用 runprompt 并写入目标文件）
 - `model` / `base_url` / `api_key` 不再作为工具参数输入，改为环境变量配置：
-  - `RUNPROMPT_MODEL`（兼容 `MODEL`）
-  - `RUNPROMPT_BASE_URL`（兼容 `OPENAI_BASE_URL`、`OPENAI_API_BASE`、`BASE_URL`；其中 `BASE_URL` 仅作为兜底）
-  - `RUNPROMPT_OPENROUTER_API_KEY`（兼容 `OPENROUTER_API_KEY`、`API_KEY`；其中 `API_KEY` 仅作为兜底）
+  - 通过 YAML `execution.env.fromRuntime` 映射 `RUNPROMPT_MODEL`（兼容 `MODEL`）
+  - 通过 YAML `execution.env.fromRuntime` 映射 `RUNPROMPT_BASE_URL`（兼容 `OPENAI_BASE_URL`、`OPENAI_API_BASE`、`BASE_URL`）
+  - 通过 YAML `execution.env.fromRuntime` 映射 `RUNPROMPT_OPENROUTER_API_KEY`（兼容 `OPENROUTER_API_KEY`、`API_KEY`）
 - `output_path` 不再作为 `runprompt__generate_artifact` 输入参数暴露；脚本会自动写入 `MCP_SHELL_SPEC_DIR/generated-artifacts/<artifact_type>/` 目录。
 
 ## 4) 运行方式

@@ -28,6 +28,21 @@ tool:
 execution:
   shell:
     mode: direct
+  env:
+    static: {}
+    fromRuntime:
+      RUNPROMPT_MODEL:
+        - RUNPROMPT_MODEL
+        - MODEL
+      RUNPROMPT_BASE_URL:
+        - RUNPROMPT_BASE_URL
+        - OPENAI_BASE_URL
+        - OPENAI_API_BASE
+        - BASE_URL
+      RUNPROMPT_OPENROUTER_API_KEY:
+        - RUNPROMPT_OPENROUTER_API_KEY
+        - OPENROUTER_API_KEY
+        - API_KEY
   timeoutMs: 120000
   maxOutputBytes: 1048576
   script:

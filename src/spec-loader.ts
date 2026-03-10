@@ -43,6 +43,45 @@ function assertSpec(spec: unknown, filePath: string): asserts spec is ShellToolS
     throw new Error(`Invalid spec in ${filePath}: execution block is required`);
   }
 
+  if ("env" in spec.execution && spec.execution.env !== undefined) {
+    if (!isRecord(spec.execution.env)) {
+      throw new Error(`Invalid spec in ${filePath}: execution.env must be an object`);
+    }
+    if ("static" in spec.execution.env && spec.execution.env.static !== undefined) {
+      if (!isRecord(spec.execution.env.static)) {
+        throw new Error(`Invalid spec in ${filePath}: execution.env.static must be an object`);
+      }
+      for (const [key, value] of Object.entries(spec.execution.env.static)) {
+        if (typeof value !== "string") {
+          throw new Error(`Invalid spec in ${filePath}: execution.env.static.${key} must be a string`);
+        }
+      }
+    }
+    if ("fromParams" in spec.execution.env && spec.execution.env.fromParams !== undefined) {
+      if (!isRecord(spec.execution.env.fromParams)) {
+        throw new Error(`Invalid spec in ${filePath}: execution.env.fromParams must be an object`);
+      }
+      for (const [key, value] of Object.entries(spec.execution.env.fromParams)) {
+        if (typeof value !== "string") {
+          throw new Error(`Invalid spec in ${filePath}: execution.env.fromParams.${key} must be a string`);
+        }
+      }
+    }
+    if ("fromRuntime" in spec.execution.env && spec.execution.env.fromRuntime !== undefined) {
+      if (!isRecord(spec.execution.env.fromRuntime)) {
+        throw new Error(`Invalid spec in ${filePath}: execution.env.fromRuntime must be an object`);
+      }
+      for (const [key, value] of Object.entries(spec.execution.env.fromRuntime)) {
+        const validArray = Array.isArray(value) && value.every((entry) => typeof entry === "string" && entry.length > 0);
+        if (!(typeof value === "string" && value.length > 0) && !validArray) {
+          throw new Error(
+            `Invalid spec in ${filePath}: execution.env.fromRuntime.${key} must be a non-empty string or array of non-empty strings`,
+          );
+        }
+      }
+    }
+  }
+
   const command = isRecord(spec.execution.command) ? spec.execution.command : undefined;
   const script = isRecord(spec.execution.script) ? spec.execution.script : undefined;
   const hasCommand = command !== undefined;
