@@ -24,6 +24,14 @@ function assertSpec(spec: unknown, filePath: string): asserts spec is ShellToolS
     throw new Error(`Invalid spec in ${filePath}: tool.name is required`);
   }
 
+  if (typeof spec.tool.description !== "string" || spec.tool.description.length === 0) {
+    throw new Error(`Invalid spec in ${filePath}: tool.description is required`);
+  }
+
+  if ("docstring" in spec.tool) {
+    throw new Error(`Invalid spec in ${filePath}: use only tool.description (docstring is not supported)`);
+  }
+
   if (!isRecord(spec.execution) || !isRecord(spec.execution.command)) {
     throw new Error(`Invalid spec in ${filePath}: execution.command is required`);
   }

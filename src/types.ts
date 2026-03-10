@@ -38,7 +38,6 @@ export interface ShellToolSpec {
   tool: {
     name: string;
     description: string;
-    docstring?: string;
     input: ToolInputSchema;
     output: ToolOutputSchema;
   };

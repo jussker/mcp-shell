@@ -2,8 +2,6 @@ apiVersion: v1
 tool:
   name: ffmpeg__probe_streams
   description: Inspect media streams and format metadata via ffprobe.
-  docstring: |
-    Returns stream and format metadata in JSON output using ffprobe.
   input:
     properties:
       input:

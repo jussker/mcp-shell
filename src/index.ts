@@ -33,14 +33,10 @@ async function main(): Promise<void> {
   });
 
   for (const spec of specs) {
-    const description = spec.tool.docstring
-      ? `${spec.tool.description}\n\n${spec.tool.docstring}`
-      : spec.tool.description;
-
     server.registerTool(
       spec.tool.name,
       {
-        description,
+        description: spec.tool.description,
         inputSchema: buildInputSchema(spec.tool.input),
       },
       async (args) => {
