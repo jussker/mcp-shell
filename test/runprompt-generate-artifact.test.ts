@@ -158,7 +158,7 @@ test("runprompt wrapper supports env-based model/base_url/api_key configuration"
   }
 });
 
-test("runprompt wrapper keeps OPENAI_BASE_URL precedence and OPENROUTER_API_KEY precedence over legacy fallbacks", async () => {
+test("runprompt wrapper respects OPENAI_BASE_URL precedence and OPENROUTER_API_KEY precedence over legacy fallbacks", async () => {
   const tempDir = await mkdtemp(path.join(os.tmpdir(), "mcp-shell-runprompt-"));
   const mockBinDir = path.join(tempDir, "bin");
 
@@ -166,7 +166,7 @@ test("runprompt wrapper keeps OPENAI_BASE_URL precedence and OPENROUTER_API_KEY 
   const mockRunpromptPath = path.join(mockBinDir, "runprompt");
   await writeFile(
     mockRunpromptPath,
-    "#!/usr/bin/env bash\nset -euo pipefail\nprintf '{\"runprompt_base_url\":\"%s\",\"runprompt_openrouter_api_key\":\"%s\"}\\n' \"${RUNPROMPT_BASE_URL:-}\" \"${RUNPROMPT_OPENROUTER_API_KEY:-}\"\n",
+    "#!/usr/bin/env bash\nset -euo pipefail\nprintf '{\"runprompt_base_url\":\"%s\",\"runprompt_openrouter_api_key\":\"%s\",\"openai_base_url\":\"%s\"}\\n' \"${RUNPROMPT_BASE_URL:-}\" \"${RUNPROMPT_OPENROUTER_API_KEY:-}\" \"${OPENAI_BASE_URL:-}\"\n",
     "utf8",
   );
   await chmod(mockRunpromptPath, 0o755);
@@ -199,6 +199,7 @@ test("runprompt wrapper keeps OPENAI_BASE_URL precedence and OPENROUTER_API_KEY 
     const payload = JSON.parse(outputContent);
     assert.equal(payload.runprompt_base_url, "");
     assert.equal(payload.runprompt_openrouter_api_key, "preferred-openrouter-key");
+    assert.equal(payload.openai_base_url, "https://openai.example/v1");
   } finally {
     process.env.PATH = originalPath;
     if (originalSpecDir === undefined) {
