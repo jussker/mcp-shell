@@ -80,6 +80,16 @@ execution:
 - `ffmpeg__transcode_mp4.yaml`：转码为 H.264/AAC MP4
 - `ffmpeg__probe_streams.yaml`：使用 `ffprobe` 输出媒体元数据
 - `shell__run_script_echo.yaml`：通过 YAML 配置执行脚本示例
+- `runprompt__generate_artifact.yaml`：通过 `runprompt` 生成脚本 / mcp-shell YAML / runprompt 提示词文件
+
+`runprompt__generate_artifact.yaml` 使用：
+
+- `specs/prompts/runprompt/generate_artifact.prompt`（runprompt 提示词模板）
+- `specs/prompts/runprompt/type-specs/`（按 artifact_type 拆分的生成约束）
+  - `script.spec.md`
+  - `mcp-shell-yaml.spec.md`
+  - `runprompt-prompt.spec.md`（基于 dotprompt frontmatter/template/picoschema 参考合并）
+- `specs/scripts/runprompt_generate_artifact.sh`（调用 runprompt 并写入目标文件）
 
 ## 4) 运行方式
 
@@ -88,6 +98,8 @@ npm install
 npm run build
 npm start
 ```
+
+> 兼容性说明：为避免在 Node `22.21.x` 下安装时触发 `posthog-node@5.28.x` 的 engine 警告，项目通过 `overrides` 固定了 `posthog-node@5.21.0`（要求 `node >=20`）。
 
 默认从 `./specs` 加载工具定义；可通过 `MCP_SHELL_SPEC_DIR` 覆盖。
 
