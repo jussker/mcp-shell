@@ -1,0 +1,65 @@
+apiVersion: v1
+tool:
+  name: ffmpeg__transcode_mp4
+  description: |-
+    /**
+     * Transcode a video input to H.264/AAC MP4.
+     * @remarks Uses a broad compatibility profile suitable for web playback.
+     * @param input Source video path.
+     * @param output Target MP4 path.
+     * @param crf H.264 CRF value, typical range 18-28.
+     * @param preset x264 preset such as veryfast, medium or slow.
+     */
+  input:
+    properties:
+      input:
+        type: string
+        description: Source video path.
+      output:
+        type: string
+        description: Target mp4 path.
+      crf:
+        type: integer
+        description: H.264 CRF value, typical range 18-28.
+      preset:
+        type: string
+        description: x264 preset such as veryfast, medium or slow.
+    required: [input, output, crf, preset]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  env:
+    static:
+      FFMPEG_HIDE_BANNER: "1"
+      FFMPEG_LOG_LEVEL: "error"
+  timeoutMs: 300000
+  maxOutputBytes: 1048576
+  command:
+    executable: ffmpeg
+    args:
+      - -hide_banner
+      - -loglevel
+      - error
+      - -y
+      - -i
+      - "{{input}}"
+      - -c:v
+      - libx264
+      - -preset
+      - "{{preset}}"
+      - -crf
+      - "{{crf}}"
+      - -c:a
+      - aac
+      - -movflags
+      - +faststart
+      - "{{output}}"

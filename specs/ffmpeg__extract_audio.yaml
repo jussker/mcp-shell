@@ -1,0 +1,56 @@
+apiVersion: v1
+tool:
+  name: ffmpeg__extract_audio
+  description: |-
+    /**
+     * Extract audio from a media file and encode it to a target format.
+     * @remarks Useful for podcast and speech processing workflows.
+     * @param input Input media file path.
+     * @param output Output audio file path.
+     * @param bitrate Audio bitrate, for example 192k.
+     */
+  input:
+    properties:
+      input:
+        type: string
+        description: Input media file path.
+      output:
+        type: string
+        description: Output audio file path.
+      bitrate:
+        type: string
+        description: Audio bitrate, for example 192k.
+    required: [input, output, bitrate]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  env:
+    static:
+      FFMPEG_HIDE_BANNER: "1"
+      FFMPEG_LOG_LEVEL: "error"
+    fromParams:
+      FFMPEG_AUDIO_BITRATE: bitrate
+  timeoutMs: 120000
+  maxOutputBytes: 1048576
+  command:
+    executable: ffmpeg
+    args:
+      - -hide_banner
+      - -loglevel
+      - error
+      - -y
+      - -i
+      - "{{input}}"
+      - -vn
+      - -b:a
+      - "{{bitrate}}"
+      - "{{output}}"
