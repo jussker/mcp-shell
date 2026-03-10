@@ -4,7 +4,8 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { VERSION as MCP_USE_VERSION } from "mcp-use";
 import { executeFromSpec } from "./executor.js";
-import { buildInputSchema } from "./schema.js";
+import { formatExecutionResultForMcp } from "./mcp-response.js";
+import { buildInputSchema, MCP_RESPONSE_MODE_PARAM } from "./schema.js";
 import { loadSpecs } from "./spec-loader.js";
 import { normalizeTSDocDescription } from "./tsdoc.js";
 
@@ -41,16 +42,14 @@ async function main(): Promise<void> {
         inputSchema: buildInputSchema(spec.tool.input),
       },
       async (args) => {
-        const result = await executeFromSpec(spec, args as Record<string, unknown>);
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify(result),
-            },
-          ],
-          structuredContent: result,
-        };
+        const parsedArgs = args as Record<string, unknown>;
+        const responseMode =
+          parsedArgs[MCP_RESPONSE_MODE_PARAM] === "structuredContent"
+            ? "structuredContent"
+            : "content";
+        const { [MCP_RESPONSE_MODE_PARAM]: _ignored, ...toolArgs } = parsedArgs;
+        const result = await executeFromSpec(spec, toolArgs);
+        return formatExecutionResultForMcp(result, responseMode);
       },
     );
   }

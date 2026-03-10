@@ -1,6 +1,9 @@
 import { z, type ZodTypeAny } from "zod";
 import type { ToolInputSchema } from "./types.js";
 
+export const MCP_RESPONSE_MODE_PARAM = "__mcp_response_mode";
+const MCP_RESPONSE_MODES = ["content", "structuredContent"] as const;
+
 export function buildInputSchema(input: ToolInputSchema): ZodTypeAny {
   const properties = input.properties ?? {};
   const required = new Set(input.required ?? []);
@@ -27,6 +30,8 @@ export function buildInputSchema(input: ToolInputSchema): ZodTypeAny {
 
     shape[name] = required.has(name) ? schema : schema.optional();
   }
+
+  shape[MCP_RESPONSE_MODE_PARAM] = z.enum(MCP_RESPONSE_MODES).optional().default("content");
 
   return z.object(shape);
 }
