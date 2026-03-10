@@ -24,10 +24,29 @@ export function parseStartupOptions(
       host: { type: "string" },
       port: { type: "string" },
       "http-path": { type: "string" },
+      help: { type: "boolean", short: "h" },
     },
     strict: true,
     allowPositionals: false,
   });
+
+  if (values.help) {
+    process.stdout.write(
+      [
+        "Usage: mcp-shell [options]",
+        "",
+        "Options:",
+        "  --transport <stdio|streamable-http>  Transport mode (default: stdio)",
+        "  --spec-dir <path>                    Tool spec directory (default: ./specs)",
+        "  --host <host>                        HTTP host (default: 127.0.0.1)",
+        "  --port <port>                        HTTP port (default: 3001)",
+        "  --http-path <path>                   HTTP endpoint path (default: /mcp)",
+        "  -h, --help                           Show this help message",
+        "",
+      ].join("\n"),
+    );
+    process.exit(0);
+  }
 
   const transportRaw = values.transport ?? env.MCP_SHELL_TRANSPORT ?? "stdio";
   if (transportRaw !== "stdio" && transportRaw !== "streamable-http") {
