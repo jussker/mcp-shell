@@ -32,7 +32,9 @@ async function resolveServerVersion(): Promise<string> {
 async function main(): Promise<void> {
   const startupOptions = parseStartupOptions();
   const specDir = startupOptions.specDir;
-  process.env.MCP_SHELL_SPEC_DIR = specDir;
+  if (!process.env.MCP_SHELL_SPEC_DIR) {
+    process.env.MCP_SHELL_SPEC_DIR = specDir;
+  }
   const specs = await loadSpecs(specDir);
   const version = await resolveServerVersion();
 

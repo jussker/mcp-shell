@@ -161,6 +161,86 @@ test("runprompt wrapper supports env-based model/base_url/api_key configuration"
   }
 });
 
+test("runprompt wrapper passes MCP runtime env vars through to script and runprompt", async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "mcp-shell-runprompt-"));
+  const mockBinDir = path.join(tempDir, "bin");
+
+  await mkdir(mockBinDir, { recursive: true });
+  const mockRunpromptPath = path.join(mockBinDir, "runprompt");
+  await writeFile(
+    mockRunpromptPath,
+    "#!/usr/bin/env bash\nset -euo pipefail\nprintf '{\"mcp_shell_spec_dir\":\"%s\",\"base_url\":\"%s\",\"openrouter_api_key\":\"%s\",\"runprompt_model\":\"%s\",\"runprompt_base_url\":\"%s\",\"runprompt_openrouter_api_key\":\"%s\"}\\n' \"${MCP_SHELL_SPEC_DIR:-}\" \"${BASE_URL:-}\" \"${OPENROUTER_API_KEY:-}\" \"${RUNPROMPT_MODEL:-}\" \"${RUNPROMPT_BASE_URL:-}\" \"${RUNPROMPT_OPENROUTER_API_KEY:-}\"\n",
+    "utf8",
+  );
+  await chmod(mockRunpromptPath, 0o755);
+
+  const spec = await loadRunpromptSpec();
+  const originalPath = process.env.PATH ?? "";
+  const originalSpecDir = process.env.MCP_SHELL_SPEC_DIR;
+  const originalRunpromptModel = process.env.RUNPROMPT_MODEL;
+  const originalBaseUrl = process.env.BASE_URL;
+  const originalOpenRouterApiKey = process.env.OPENROUTER_API_KEY;
+  const originalRunpromptBaseUrl = process.env.RUNPROMPT_BASE_URL;
+  const originalRunpromptOpenRouterApiKey = process.env.RUNPROMPT_OPENROUTER_API_KEY;
+  process.env.PATH = `${mockBinDir}:${originalPath}`;
+  process.env.MCP_SHELL_SPEC_DIR = tempDir;
+  process.env.RUNPROMPT_MODEL = "openrouter/deepseek/deepseek-v3.2";
+  process.env.BASE_URL = "https://openrouter.ai/api/v1";
+  process.env.OPENROUTER_API_KEY = "openrouter-key";
+  delete process.env.RUNPROMPT_BASE_URL;
+  delete process.env.RUNPROMPT_OPENROUTER_API_KEY;
+
+  try {
+    const result = await executeFromSpec(spec, {
+      artifact_type: "script",
+      requirements: "generate a shell script",
+    });
+
+    assert.equal(result.status, "success");
+    const outputPath = extractGeneratedPath(result.stdout);
+    const outputContent = await readFile(outputPath, "utf8");
+    const payload = JSON.parse(outputContent);
+    assert.equal(payload.mcp_shell_spec_dir, tempDir);
+    assert.equal(payload.base_url, "https://openrouter.ai/api/v1");
+    assert.equal(payload.openrouter_api_key, "openrouter-key");
+    assert.equal(payload.runprompt_model, "openrouter/deepseek/deepseek-v3.2");
+    assert.equal(payload.runprompt_base_url, "https://openrouter.ai/api/v1");
+    assert.equal(payload.runprompt_openrouter_api_key, "openrouter-key");
+  } finally {
+    process.env.PATH = originalPath;
+    if (originalSpecDir === undefined) {
+      delete process.env.MCP_SHELL_SPEC_DIR;
+    } else {
+      process.env.MCP_SHELL_SPEC_DIR = originalSpecDir;
+    }
+    if (originalRunpromptModel === undefined) {
+      delete process.env.RUNPROMPT_MODEL;
+    } else {
+      process.env.RUNPROMPT_MODEL = originalRunpromptModel;
+    }
+    if (originalBaseUrl === undefined) {
+      delete process.env.BASE_URL;
+    } else {
+      process.env.BASE_URL = originalBaseUrl;
+    }
+    if (originalOpenRouterApiKey === undefined) {
+      delete process.env.OPENROUTER_API_KEY;
+    } else {
+      process.env.OPENROUTER_API_KEY = originalOpenRouterApiKey;
+    }
+    if (originalRunpromptBaseUrl === undefined) {
+      delete process.env.RUNPROMPT_BASE_URL;
+    } else {
+      process.env.RUNPROMPT_BASE_URL = originalRunpromptBaseUrl;
+    }
+    if (originalRunpromptOpenRouterApiKey === undefined) {
+      delete process.env.RUNPROMPT_OPENROUTER_API_KEY;
+    } else {
+      process.env.RUNPROMPT_OPENROUTER_API_KEY = originalRunpromptOpenRouterApiKey;
+    }
+  }
+});
+
 test("runprompt wrapper respects OPENAI_BASE_URL precedence and OPENROUTER_API_KEY precedence over legacy fallbacks", async () => {
   const tempDir = await mkdtemp(path.join(os.tmpdir(), "mcp-shell-runprompt-"));
   const mockBinDir = path.join(tempDir, "bin");
