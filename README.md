@@ -37,7 +37,11 @@
 apiVersion: v1
 tool:
   name: unique_tool_name
-  description: 工具描述（唯一描述字段）
+  description: |-
+    /**
+     * 工具描述（TSDoc 标准，且为唯一描述字段）
+     * @param arg1 参数说明
+     */
   input:
     properties:
       arg1:
@@ -71,7 +75,7 @@ execution:
 
 设计要点：
 
-- 仅保留 `tool.description` 作为工具描述字段（不再使用 `docstring`）；
+- 仅保留 `tool.description` 作为工具描述字段（不再使用 `docstring`），且必须使用 TSDoc 标准；
 - `tool.input` / `tool.output` 声明输入输出结构；
 - `execution.env.fromParams` 支持参数到环境变量映射；
 - `execution.shell` 支持常见 shell 名称与自定义路径；

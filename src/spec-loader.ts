@@ -1,6 +1,7 @@
 import { readdir, readFile } from "node:fs/promises";
 import path from "node:path";
 import { parse } from "yaml";
+import { normalizeTSDocDescription } from "./tsdoc.js";
 import type { ShellToolSpec } from "./types.js";
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -26,6 +27,12 @@ function assertSpec(spec: unknown, filePath: string): asserts spec is ShellToolS
 
   if (typeof spec.tool.description !== "string" || spec.tool.description.length === 0) {
     throw new Error(`Invalid spec in ${filePath}: tool.description is required`);
+  }
+  try {
+    normalizeTSDocDescription(spec.tool.description);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(`Invalid spec in ${filePath}: ${message}`);
   }
 
   if ("docstring" in spec.tool) {

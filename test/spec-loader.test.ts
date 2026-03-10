@@ -5,6 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import { buildExecutionPlan } from "../src/executor.js";
 import { loadSpecs } from "../src/spec-loader.js";
+import { normalizeTSDocDescription } from "../src/tsdoc.js";
 import type { ShellToolSpec } from "../src/types.js";
 
 const specDir = path.resolve(process.cwd(), "specs");
@@ -22,7 +23,7 @@ test("maps params into command args and env vars", () => {
     apiVersion: "v1",
     tool: {
       name: "demo__echo",
-      description: "demo",
+      description: "/** demo */",
       input: {
         properties: {
           value: { type: "string" },
@@ -59,7 +60,10 @@ test("rejects yaml specs that still use docstring", async () => {
     `apiVersion: v1
 tool:
   name: invalid_tool
-  description: ok
+  description: |
+    /**
+     * Valid TSDoc description
+     */
   docstring: should_not_exist
   input:
     properties: {}
@@ -74,4 +78,70 @@ execution:
   );
 
   await assert.rejects(loadSpecs(dir), /docstring is not supported/);
+});
+
+test("rejects yaml specs when description is not TSDoc", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "mcp-shell-spec-"));
+  await writeFile(
+    path.join(dir, "invalid-tsdoc.yaml"),
+    `apiVersion: v1
+tool:
+  name: invalid_tsdoc
+  description: plain text description
+  input:
+    properties: {}
+  output:
+    type: object
+    properties: {}
+execution:
+  command:
+    executable: echo
+`,
+    "utf8",
+  );
+
+  await assert.rejects(loadSpecs(dir), /TSDoc block comment/);
+});
+
+test("normalizes TSDoc description for MCP registration", () => {
+  const description = normalizeTSDocDescription(`/**
+ * Summary line.
+ * @remarks Additional details.
+ */`);
+
+  assert.equal(description, "Summary line.\n@remarks Additional details.");
+});
+
+test("normalizes TSDoc with mixed indentation and preserves inner spacing", () => {
+  const description = normalizeTSDocDescription(`/**
+\t*   Summary with extra indentation.
+  * @remarks  Two spaces before this sentence are preserved.
+ * **Bold marker should remain in content.
+ */`);
+
+  assert.equal(
+    description,
+    "Summary with extra indentation.\n@remarks  Two spaces before this sentence are preserved.\n**Bold marker should remain in content.",
+  );
+});
+
+test("rejects malformed TSDoc lines without leading *", () => {
+  assert.throws(
+    () =>
+      normalizeTSDocDescription(`/**
+ * valid line
+ malformed line
+ */`),
+    /standard TSDoc line prefixes/,
+  );
+});
+
+test("keeps intentional blank lines in TSDoc body", () => {
+  const description = normalizeTSDocDescription(`/**
+ * First line.
+ *
+ * Second line.
+ */`);
+
+  assert.equal(description, "First line.\n\nSecond line.");
 });

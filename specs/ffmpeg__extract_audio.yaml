@@ -1,7 +1,14 @@
 apiVersion: v1
 tool:
   name: ffmpeg__extract_audio
-  description: Extract audio from a media file and encode it to a target format.
+  description: |-
+    /**
+     * Extract audio from a media file and encode it to a target format.
+     * @remarks Useful for podcast and speech processing workflows.
+     * @param input Input media file path.
+     * @param output Output audio file path.
+     * @param bitrate Audio bitrate, for example 192k.
+     */
   input:
     properties:
       input:

@@ -1,7 +1,15 @@
 apiVersion: v1
 tool:
   name: ffmpeg__transcode_mp4
-  description: Transcode a video input to H.264/AAC MP4.
+  description: |-
+    /**
+     * Transcode a video input to H.264/AAC MP4.
+     * @remarks Uses a broad compatibility profile suitable for web playback.
+     * @param input Source video path.
+     * @param output Target MP4 path.
+     * @param crf H.264 CRF value, typical range 18-28.
+     * @param preset x264 preset such as veryfast, medium or slow.
+     */
   input:
     properties:
       input:

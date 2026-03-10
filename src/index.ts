@@ -6,6 +6,7 @@ import { VERSION as MCP_USE_VERSION } from "mcp-use";
 import { executeFromSpec } from "./executor.js";
 import { buildInputSchema } from "./schema.js";
 import { loadSpecs } from "./spec-loader.js";
+import { normalizeTSDocDescription } from "./tsdoc.js";
 
 async function resolveServerVersion(): Promise<string> {
   if (process.env.MCP_SHELL_SERVER_VERSION) {
@@ -36,7 +37,7 @@ async function main(): Promise<void> {
     server.registerTool(
       spec.tool.name,
       {
-        description: spec.tool.description,
+        description: normalizeTSDocDescription(spec.tool.description),
         inputSchema: buildInputSchema(spec.tool.input),
       },
       async (args) => {
