@@ -93,6 +93,20 @@ export function buildExecutionPlan(spec: ShellToolSpec, args: Record<string, unk
     ...Object.fromEntries(Object.entries(process.env).filter(([, value]) => value !== undefined) as [string, string][]),
   };
 
+  for (const [envVar, source] of Object.entries(spec.execution.env?.fromRuntime ?? {})) {
+    if (env[envVar] !== undefined && env[envVar] !== "") {
+      continue;
+    }
+    const sourceNames = Array.isArray(source) ? source : [source];
+    for (const sourceName of sourceNames) {
+      const sourceValue = process.env[sourceName];
+      if (sourceValue !== undefined && sourceValue !== "") {
+        env[envVar] = sourceValue;
+        break;
+      }
+    }
+  }
+
   for (const [key, value] of Object.entries(spec.execution.env?.static ?? {})) {
     env[key] = renderTemplate(value, args);
   }

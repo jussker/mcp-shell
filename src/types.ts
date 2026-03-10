@@ -26,6 +26,7 @@ export interface ShellConfig {
 export interface EnvConfig {
   static?: Record<string, string>;
   fromParams?: Record<string, string>;
+  fromRuntime?: Record<string, string | string[]>;
 }
 
 export interface CommandConfig {

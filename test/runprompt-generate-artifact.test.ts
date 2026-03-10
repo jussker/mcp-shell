@@ -15,6 +15,11 @@ async function loadRunpromptSpec() {
   assert.ok(spec.execution.env);
   assert.ok(Object.prototype.hasOwnProperty.call(spec.execution.env, "static"));
   assert.deepEqual(spec.execution.env.static, {});
+  assert.deepEqual(spec.execution.env.fromRuntime, {
+    RUNPROMPT_MODEL: ["RUNPROMPT_MODEL", "MODEL"],
+    RUNPROMPT_BASE_URL: ["RUNPROMPT_BASE_URL", "OPENAI_BASE_URL", "OPENAI_API_BASE", "BASE_URL"],
+    RUNPROMPT_OPENROUTER_API_KEY: ["RUNPROMPT_OPENROUTER_API_KEY", "OPENROUTER_API_KEY", "API_KEY"],
+  });
   assert.ok(!("model" in spec.tool.input.properties));
   assert.ok(!("base_url" in spec.tool.input.properties));
   assert.ok(!("openrouter_api_key" in spec.tool.input.properties));
@@ -241,7 +246,7 @@ test("runprompt wrapper passes MCP runtime env vars through to script and runpro
   }
 });
 
-test("runprompt wrapper respects OPENAI_BASE_URL precedence and OPENROUTER_API_KEY precedence over legacy fallbacks", async () => {
+test("runprompt wrapper respects YAML runtime-env precedence for base_url and api_key mapping", async () => {
   const tempDir = await mkdtemp(path.join(os.tmpdir(), "mcp-shell-runprompt-"));
   const mockBinDir = path.join(tempDir, "bin");
 
@@ -280,7 +285,7 @@ test("runprompt wrapper respects OPENAI_BASE_URL precedence and OPENROUTER_API_K
     const outputPath = extractGeneratedPath(result.stdout);
     const outputContent = await readFile(outputPath, "utf8");
     const payload = JSON.parse(outputContent);
-    assert.equal(payload.runprompt_base_url, "");
+    assert.equal(payload.runprompt_base_url, "https://openai.example/v1");
     assert.equal(payload.runprompt_openrouter_api_key, "preferred-openrouter-key");
     assert.equal(payload.openai_base_url, "https://openai.example/v1");
   } finally {

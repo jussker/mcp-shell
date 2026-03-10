@@ -21,6 +21,11 @@ test("loads bundled tool specs", async () => {
 });
 
 test("maps params into command args and env vars", () => {
+  const originalLegacy = process.env.TEST_LEGACY_ENV;
+  const originalPreferred = process.env.TEST_PREFERRED_ENV;
+  process.env.TEST_LEGACY_ENV = "legacy-value";
+  process.env.TEST_PREFERRED_ENV = "preferred-value";
+
   const spec: ShellToolSpec = {
     apiVersion: "v1",
     tool: {
@@ -39,6 +44,9 @@ test("maps params into command args and env vars", () => {
       env: {
         static: { STATIC_ENV: "ok" },
         fromParams: { DYNAMIC_ENV: "value" },
+        fromRuntime: {
+          MAPPED_ENV: ["TEST_PREFERRED_ENV", "TEST_LEGACY_ENV"],
+        },
       },
       command: {
         executable: "echo",
@@ -47,12 +55,26 @@ test("maps params into command args and env vars", () => {
     },
   };
 
-  const plan = buildExecutionPlan(spec, { value: "hello" });
-  assert.equal(plan.executable, "echo");
-  assert.deepEqual(plan.launchArgs, ["hello"]);
-  assert.equal(plan.env.STATIC_ENV, "ok");
-  assert.equal(plan.env.DYNAMIC_ENV, "hello");
-  assert.equal(plan.commandDisplay, "echo hello");
+  try {
+    const plan = buildExecutionPlan(spec, { value: "hello" });
+    assert.equal(plan.executable, "echo");
+    assert.deepEqual(plan.launchArgs, ["hello"]);
+    assert.equal(plan.env.STATIC_ENV, "ok");
+    assert.equal(plan.env.DYNAMIC_ENV, "hello");
+    assert.equal(plan.env.MAPPED_ENV, "preferred-value");
+    assert.equal(plan.commandDisplay, "echo hello");
+  } finally {
+    if (originalLegacy === undefined) {
+      delete process.env.TEST_LEGACY_ENV;
+    } else {
+      process.env.TEST_LEGACY_ENV = originalLegacy;
+    }
+    if (originalPreferred === undefined) {
+      delete process.env.TEST_PREFERRED_ENV;
+    } else {
+      process.env.TEST_PREFERRED_ENV = originalPreferred;
+    }
+  }
 });
 
 test("maps params into script args with relative path and interpreter", () => {
@@ -188,6 +210,36 @@ execution:
   );
 
   await assert.rejects(loadSpecs(dir), /execution.command and execution.script cannot both be set/);
+});
+
+test("rejects yaml specs when execution.env.fromRuntime values are invalid", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "mcp-shell-spec-"));
+  await writeFile(
+    path.join(dir, "invalid-env-from-runtime.yaml"),
+    `apiVersion: v1
+tool:
+  name: invalid_env_from_runtime
+  description: |
+    /**
+     * Valid TSDoc description
+     */
+  input:
+    properties: {}
+  output:
+    type: object
+    properties: {}
+execution:
+  env:
+    fromRuntime:
+      BAD_MAP:
+        invalid: object
+  command:
+    executable: echo
+`,
+    "utf8",
+  );
+
+  await assert.rejects(loadSpecs(dir), /execution\.env\.fromRuntime\.BAD_MAP must be a non-empty string or array of non-empty strings/);
 });
 
 test("normalizes TSDoc description for MCP registration", () => {
