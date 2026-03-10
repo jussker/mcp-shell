@@ -57,7 +57,9 @@ test("runprompt wrapper injects the selected type spec into runprompt input", as
 
   const spec = await loadRunpromptSpec();
   const originalPath = process.env.PATH ?? "";
+  const originalStorageRoot = process.env.MCP_SHELL_STORAGE_ROOT;
   process.env.PATH = `${mockBinDir}:${originalPath}`;
+  process.env.MCP_SHELL_STORAGE_ROOT = tempDir;
 
   try {
     const result = await executeFromSpec(spec, {
@@ -77,6 +79,11 @@ test("runprompt wrapper injects the selected type spec into runprompt input", as
     assert.match(payload.type_spec, /set -euo pipefail/);
   } finally {
     process.env.PATH = originalPath;
+    if (originalStorageRoot === undefined) {
+      delete process.env.MCP_SHELL_STORAGE_ROOT;
+    } else {
+      process.env.MCP_SHELL_STORAGE_ROOT = originalStorageRoot;
+    }
   }
 });
 
@@ -96,10 +103,12 @@ test("runprompt wrapper supports env-based model/base_url/api_key configuration"
 
   const spec = await loadRunpromptSpec();
   const originalPath = process.env.PATH ?? "";
+  const originalStorageRoot = process.env.MCP_SHELL_STORAGE_ROOT;
   const originalModel = process.env.MODEL;
   const originalBaseUrl = process.env.BASE_URL;
   const originalApiKey = process.env.API_KEY;
   process.env.PATH = `${mockBinDir}:${originalPath}`;
+  process.env.MCP_SHELL_STORAGE_ROOT = tempDir;
   process.env.MODEL = "openrouter/deepseek/deepseek-v3.2";
   process.env.BASE_URL = "https://openrouter.ai/api/v1";
   process.env.API_KEY = "test-api-key";
@@ -119,6 +128,11 @@ test("runprompt wrapper supports env-based model/base_url/api_key configuration"
     assert.equal(payload.api_key, "test-api-key");
   } finally {
     process.env.PATH = originalPath;
+    if (originalStorageRoot === undefined) {
+      delete process.env.MCP_SHELL_STORAGE_ROOT;
+    } else {
+      process.env.MCP_SHELL_STORAGE_ROOT = originalStorageRoot;
+    }
 
     if (originalModel === undefined) {
       delete process.env.MODEL;
@@ -154,7 +168,9 @@ test("runprompt wrapper rejects invalid dotprompt output for runprompt-prompt ar
 
   const spec = await loadRunpromptSpec();
   const originalPath = process.env.PATH ?? "";
+  const originalStorageRoot = process.env.MCP_SHELL_STORAGE_ROOT;
   process.env.PATH = `${mockBinDir}:${originalPath}`;
+  process.env.MCP_SHELL_STORAGE_ROOT = tempDir;
 
   try {
     const result = await executeFromSpec(spec, {
@@ -167,6 +183,11 @@ test("runprompt wrapper rejects invalid dotprompt output for runprompt-prompt ar
     assert.match(result.stderr, /must start with YAML frontmatter/i);
   } finally {
     process.env.PATH = originalPath;
+    if (originalStorageRoot === undefined) {
+      delete process.env.MCP_SHELL_STORAGE_ROOT;
+    } else {
+      process.env.MCP_SHELL_STORAGE_ROOT = originalStorageRoot;
+    }
   }
 });
 
@@ -186,7 +207,9 @@ test("runprompt wrapper accepts valid dotprompt output and writes file", async (
 
   const spec = await loadRunpromptSpec();
   const originalPath = process.env.PATH ?? "";
+  const originalStorageRoot = process.env.MCP_SHELL_STORAGE_ROOT;
   process.env.PATH = `${mockBinDir}:${originalPath}`;
+  process.env.MCP_SHELL_STORAGE_ROOT = tempDir;
 
   try {
     const result = await executeFromSpec(spec, {
@@ -201,5 +224,83 @@ test("runprompt wrapper accepts valid dotprompt output and writes file", async (
     assert.match(outputContent, /\n---\nSummarize: \{\{text\}\}/);
   } finally {
     process.env.PATH = originalPath;
+    if (originalStorageRoot === undefined) {
+      delete process.env.MCP_SHELL_STORAGE_ROOT;
+    } else {
+      process.env.MCP_SHELL_STORAGE_ROOT = originalStorageRoot;
+    }
+  }
+});
+
+test("runprompt wrapper requires MCP_SHELL_STORAGE_ROOT to be configured", async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "mcp-shell-runprompt-"));
+  const mockBinDir = path.join(tempDir, "bin");
+  const outputPath = path.join(tempDir, "out", "generated.txt");
+
+  await mkdir(mockBinDir, { recursive: true });
+  const mockRunpromptPath = path.join(mockBinDir, "runprompt");
+  await writeFile(mockRunpromptPath, "#!/usr/bin/env bash\nset -euo pipefail\nprintf 'ok\\n'\n", "utf8");
+  await chmod(mockRunpromptPath, 0o755);
+
+  const spec = await loadRunpromptSpec();
+  const originalPath = process.env.PATH ?? "";
+  const originalStorageRoot = process.env.MCP_SHELL_STORAGE_ROOT;
+  process.env.PATH = `${mockBinDir}:${originalPath}`;
+  delete process.env.MCP_SHELL_STORAGE_ROOT;
+
+  try {
+    const result = await executeFromSpec(spec, {
+      artifact_type: "script",
+      requirements: "generate a shell script",
+      output_path: outputPath,
+    });
+
+    assert.equal(result.status, "error");
+    assert.match(result.stderr, /MCP_SHELL_STORAGE_ROOT is not configured/i);
+  } finally {
+    process.env.PATH = originalPath;
+    if (originalStorageRoot === undefined) {
+      delete process.env.MCP_SHELL_STORAGE_ROOT;
+    } else {
+      process.env.MCP_SHELL_STORAGE_ROOT = originalStorageRoot;
+    }
+  }
+});
+
+test("runprompt wrapper rejects output_path outside MCP_SHELL_STORAGE_ROOT", async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "mcp-shell-runprompt-"));
+  const mockBinDir = path.join(tempDir, "bin");
+  const storageRoot = path.join(tempDir, "storage");
+  const outputPath = path.join(tempDir, "outside", "generated.txt");
+
+  await mkdir(mockBinDir, { recursive: true });
+  await mkdir(storageRoot, { recursive: true });
+  const mockRunpromptPath = path.join(mockBinDir, "runprompt");
+  await writeFile(mockRunpromptPath, "#!/usr/bin/env bash\nset -euo pipefail\nprintf 'ok\\n'\n", "utf8");
+  await chmod(mockRunpromptPath, 0o755);
+
+  const spec = await loadRunpromptSpec();
+  const originalPath = process.env.PATH ?? "";
+  const originalStorageRoot = process.env.MCP_SHELL_STORAGE_ROOT;
+  process.env.PATH = `${mockBinDir}:${originalPath}`;
+  process.env.MCP_SHELL_STORAGE_ROOT = storageRoot;
+
+  try {
+    const result = await executeFromSpec(spec, {
+      artifact_type: "script",
+      requirements: "generate a shell script",
+      output_path: outputPath,
+    });
+
+    assert.equal(result.status, "error");
+    assert.match(result.stderr, /output_path must stay within MCP_SHELL_STORAGE_ROOT/i);
+    assert.match(result.stderr, new RegExp(storageRoot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+  } finally {
+    process.env.PATH = originalPath;
+    if (originalStorageRoot === undefined) {
+      delete process.env.MCP_SHELL_STORAGE_ROOT;
+    } else {
+      process.env.MCP_SHELL_STORAGE_ROOT = originalStorageRoot;
+    }
   }
 });

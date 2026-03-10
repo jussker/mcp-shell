@@ -89,6 +89,7 @@ execution:
   - `RUNPROMPT_MODEL`（兼容 `MODEL`）
   - `RUNPROMPT_BASE_URL`（兼容 `BASE_URL`）
   - `RUNPROMPT_OPENROUTER_API_KEY`（兼容 `OPENROUTER_API_KEY`、`API_KEY`）
+- `MCP_SHELL_STORAGE_ROOT`：`runprompt__generate_artifact` 输出围栏根目录（必填）。`output_path` 必须位于该目录内，否则会拒绝执行并提示修正路径。
 
 ## 4) 运行方式
 
@@ -117,6 +118,7 @@ npx -y github:jussker/mcp-shell --transport stdio
 - `--http-path` / `MCP_SHELL_HTTP_PATH`：`streamable-http` 路径（默认 `/mcp`）
 - `MCP_SHELL_SERVER_NAME`：MCP server 名称（默认 `mcp-shell`）
 - `MCP_SHELL_SERVER_VERSION`：MCP server 版本（默认读取 `package.json` 的 `version`）
+- `MCP_SHELL_STORAGE_ROOT`：`runprompt__generate_artifact` 允许写入的输出根目录（用于路径围栏）
 
 示例（HTTP 模式）：
 

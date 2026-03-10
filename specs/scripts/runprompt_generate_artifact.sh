@@ -19,6 +19,45 @@ case "${artifact_type}" in
     ;;
 esac
 
+if [[ -z "${MCP_SHELL_STORAGE_ROOT:-}" ]]; then
+  echo "MCP_SHELL_STORAGE_ROOT is not configured. Please set MCP_SHELL_STORAGE_ROOT to the allowed output directory root." >&2
+  exit 2
+fi
+
+resolve_and_validate_output_path() {
+  python3 - "${MCP_SHELL_STORAGE_ROOT}" "${output_path}" <<'PY'
+import os
+import pathlib
+import sys
+
+storage_root_raw = sys.argv[1]
+output_path_raw = sys.argv[2]
+
+storage_root = pathlib.Path(storage_root_raw).resolve(strict=False)
+output_path = pathlib.Path(output_path_raw).resolve(strict=False)
+
+try:
+    if os.path.commonpath([str(storage_root), str(output_path)]) != str(storage_root):
+        suggested = storage_root / pathlib.Path(output_path_raw).name
+        print(
+            f"output_path must stay within MCP_SHELL_STORAGE_ROOT: {storage_root}. "
+            f"Try output_path under {suggested}",
+            file=sys.stderr,
+        )
+        sys.exit(2)
+except ValueError:
+    print(
+        f"output_path must stay within MCP_SHELL_STORAGE_ROOT: {storage_root}.",
+        file=sys.stderr,
+    )
+    sys.exit(2)
+
+print(output_path)
+PY
+}
+
+output_path="$(resolve_and_validate_output_path)"
+
 if ! command -v runprompt >/dev/null 2>&1; then
   echo "runprompt command not found in PATH" >&2
   exit 127
