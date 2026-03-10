@@ -53,6 +53,38 @@ test("maps params into command args and env vars", () => {
   assert.equal(plan.commandDisplay, "echo hello");
 });
 
+test("maps params into script args with relative path and interpreter", () => {
+  const spec: ShellToolSpec = {
+    apiVersion: "v1",
+    tool: {
+      name: "demo__script",
+      description: "/** demo */",
+      input: {
+        properties: {
+          value: { type: "string" },
+        },
+        required: ["value"],
+      },
+      output: { type: "object", properties: {} },
+    },
+    execution: {
+      script: {
+        path: "./scripts/demo.sh",
+        interpreter: "bash",
+        args: ["{{value}}"],
+      },
+    },
+    __meta: {
+      specDir: "/tmp/specs",
+    },
+  };
+
+  const plan = buildExecutionPlan(spec, { value: "hello world" });
+  assert.equal(plan.executable, "bash");
+  assert.deepEqual(plan.launchArgs, ["/tmp/specs/scripts/demo.sh", "hello world"]);
+  assert.equal(plan.commandDisplay, "bash /tmp/specs/scripts/demo.sh 'hello world'");
+});
+
 test("rejects yaml specs that still use docstring", async () => {
   const dir = await mkdtemp(path.join(os.tmpdir(), "mcp-shell-spec-"));
   await writeFile(
@@ -101,6 +133,59 @@ execution:
   );
 
   await assert.rejects(loadSpecs(dir), /TSDoc block comment/);
+});
+
+test("rejects yaml specs without command or script", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "mcp-shell-spec-"));
+  await writeFile(
+    path.join(dir, "invalid-execution.yaml"),
+    `apiVersion: v1
+tool:
+  name: invalid_execution
+  description: |
+    /**
+     * Valid TSDoc description
+     */
+  input:
+    properties: {}
+  output:
+    type: object
+    properties: {}
+execution:
+  timeoutMs: 1000
+`,
+    "utf8",
+  );
+
+  await assert.rejects(loadSpecs(dir), /execution.command or execution.script is required/);
+});
+
+test("rejects yaml specs with both command and script", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "mcp-shell-spec-"));
+  await writeFile(
+    path.join(dir, "invalid-both.yaml"),
+    `apiVersion: v1
+tool:
+  name: invalid_both
+  description: |
+    /**
+     * Valid TSDoc description
+     */
+  input:
+    properties: {}
+  output:
+    type: object
+    properties: {}
+execution:
+  command:
+    executable: echo
+  script:
+    path: ./demo.sh
+`,
+    "utf8",
+  );
+
+  await assert.rejects(loadSpecs(dir), /execution.command and execution.script cannot both be set/);
 });
 
 test("normalizes TSDoc description for MCP registration", () => {

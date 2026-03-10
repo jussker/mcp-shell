@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import path from "node:path";
 import type { ExecutionResult, ShellToolSpec } from "./types.js";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
@@ -40,10 +41,10 @@ function shellQuote(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
-function resolveShell(spec: ShellToolSpec): { executable: string; args: string[] } {
+function resolveShell(spec: ShellToolSpec, args: Record<string, unknown>): { executable: string; args: string[] } {
   const shell = spec.execution.shell;
   if (!shell || shell.mode === "direct") {
-    const executable = renderTemplate(spec.execution.command.executable, {});
+    const executable = resolveCommandTarget(spec, args).commandExecutable;
     return { executable, args: [] };
   }
 
@@ -52,9 +53,42 @@ function resolveShell(spec: ShellToolSpec): { executable: string; args: string[]
   return { executable: shellExecutable, args: baseArgs };
 }
 
+function resolveCommandTarget(
+  spec: ShellToolSpec,
+  args: Record<string, unknown>,
+): { commandExecutable: string; commandArgs: string[] } {
+  if (spec.execution.command) {
+    return {
+      commandExecutable: renderTemplate(spec.execution.command.executable, args),
+      commandArgs: (spec.execution.command.args ?? []).map((arg) => renderTemplate(arg, args)),
+    };
+  }
+
+  if (!spec.execution.script) {
+    throw new Error(`Tool ${spec.tool.name} has neither execution.command nor execution.script`);
+  }
+
+  const renderedPath = renderTemplate(spec.execution.script.path, args);
+  const scriptPath = path.isAbsolute(renderedPath)
+    ? renderedPath
+    : path.resolve(spec.__meta?.specDir ?? process.cwd(), renderedPath);
+  const scriptArgs = (spec.execution.script.args ?? []).map((arg) => renderTemplate(arg, args));
+  const interpreter = spec.execution.script.interpreter;
+  if (interpreter) {
+    return {
+      commandExecutable: interpreter,
+      commandArgs: [scriptPath, ...scriptArgs],
+    };
+  }
+
+  return {
+    commandExecutable: scriptPath,
+    commandArgs: scriptArgs,
+  };
+}
+
 export function buildExecutionPlan(spec: ShellToolSpec, args: Record<string, unknown>) {
-  const commandExecutable = renderTemplate(spec.execution.command.executable, args);
-  const commandArgs = (spec.execution.command.args ?? []).map((arg) => renderTemplate(arg, args));
+  const { commandExecutable, commandArgs } = resolveCommandTarget(spec, args);
   const env: Record<string, string> = {
     ...Object.fromEntries(Object.entries(process.env).filter(([, value]) => value !== undefined) as [string, string][]),
   };
@@ -71,7 +105,7 @@ export function buildExecutionPlan(spec: ShellToolSpec, args: Record<string, unk
   }
 
   const commandDisplay = [commandExecutable, ...commandArgs].map(shellQuote).join(" ");
-  const shell = resolveShell(spec);
+  const shell = resolveShell(spec, args);
   const launchArgs =
     spec.execution.shell?.mode === "shell"
       ? [...shell.args, commandDisplay]
