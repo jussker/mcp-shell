@@ -7,6 +7,10 @@ test("sanitizeOutputText escapes non-printable control chars", () => {
   assert.equal(sanitizeOutputText("a\u0000b\u0007c"), "a\\x00b\\x07c");
 });
 
+test("sanitizeOutputText preserves tabs and newlines", () => {
+  assert.equal(sanitizeOutputText("a\tb\nc\r\n"), "a\tb\nc\r\n");
+});
+
 test("executeFromSpec returns text-safe stdout for binary-like output", async () => {
   const spec: ShellToolSpec = {
     apiVersion: "v1",

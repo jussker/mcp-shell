@@ -3,14 +3,14 @@ import type { ExecutionResult, ShellToolSpec } from "./types.js";
 
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_OUTPUT_BYTES = 1_048_576;
-const CONTROL_CHARS_REGEX = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
+const CONTROL_CHARS_EXCEPT_COMMON_WHITESPACE_REGEX = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g;
 
 function escapeControlCharacter(char: string): string {
   return `\\x${char.charCodeAt(0).toString(16).padStart(2, "0")}`;
 }
 
 export function sanitizeOutputText(content: string): string {
-  return content.replace(CONTROL_CHARS_REGEX, escapeControlCharacter);
+  return content.replace(CONTROL_CHARS_EXCEPT_COMMON_WHITESPACE_REGEX, escapeControlCharacter);
 }
 
 function terminateChild(child: ReturnType<typeof spawn>): void {
