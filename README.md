@@ -89,6 +89,7 @@ execution:
   - `RUNPROMPT_MODEL`（兼容 `MODEL`）
   - `RUNPROMPT_BASE_URL`（兼容 `BASE_URL`）
   - `RUNPROMPT_OPENROUTER_API_KEY`（兼容 `OPENROUTER_API_KEY`、`API_KEY`）
+- `output_path` 不再作为 `runprompt__generate_artifact` 输入参数暴露；脚本会自动写入 `MCP_SHELL_SPEC_DIR/generated-artifacts/<artifact_type>/` 目录。
 
 ## 4) 运行方式
 

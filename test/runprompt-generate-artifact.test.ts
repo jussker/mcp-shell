@@ -15,7 +15,15 @@ async function loadRunpromptSpec() {
   assert.ok(!("model" in spec.tool.input.properties));
   assert.ok(!("base_url" in spec.tool.input.properties));
   assert.ok(!("openrouter_api_key" in spec.tool.input.properties));
+  assert.ok(!("output_path" in spec.tool.input.properties));
   return spec;
+}
+
+function extractGeneratedPath(stdout: unknown): string {
+  const text = String(stdout ?? "");
+  const match = text.match(/^generated:(.+)$/m);
+  assert.ok(match, "stdout should include generated:<path>");
+  return match[1].trim();
 }
 
 test("runprompt template references per-type specification", async () => {
@@ -44,7 +52,6 @@ test("runprompt template references per-type specification", async () => {
 test("runprompt wrapper injects the selected type spec into runprompt input", async () => {
   const tempDir = await mkdtemp(path.join(os.tmpdir(), "mcp-shell-runprompt-"));
   const mockBinDir = path.join(tempDir, "bin");
-  const outputPath = path.join(tempDir, "out", "generated.txt");
 
   await mkdir(mockBinDir, { recursive: true });
   const mockRunpromptPath = path.join(mockBinDir, "runprompt");
@@ -57,17 +64,19 @@ test("runprompt wrapper injects the selected type spec into runprompt input", as
 
   const spec = await loadRunpromptSpec();
   const originalPath = process.env.PATH ?? "";
+  const originalSpecDir = process.env.MCP_SHELL_SPEC_DIR;
   process.env.PATH = `${mockBinDir}:${originalPath}`;
+  process.env.MCP_SHELL_SPEC_DIR = tempDir;
 
   try {
     const result = await executeFromSpec(spec, {
       artifact_type: "script",
       requirements: "generate a safe cleanup script",
-      output_path: outputPath,
     });
 
     assert.equal(result.status, "success");
 
+    const outputPath = extractGeneratedPath(result.stdout);
     const outputContent = await readFile(outputPath, "utf8");
     const payload = JSON.parse(outputContent);
 
@@ -77,13 +86,17 @@ test("runprompt wrapper injects the selected type spec into runprompt input", as
     assert.match(payload.type_spec, /set -euo pipefail/);
   } finally {
     process.env.PATH = originalPath;
+    if (originalSpecDir === undefined) {
+      delete process.env.MCP_SHELL_SPEC_DIR;
+    } else {
+      process.env.MCP_SHELL_SPEC_DIR = originalSpecDir;
+    }
   }
 });
 
 test("runprompt wrapper supports env-based model/base_url/api_key configuration", async () => {
   const tempDir = await mkdtemp(path.join(os.tmpdir(), "mcp-shell-runprompt-"));
   const mockBinDir = path.join(tempDir, "bin");
-  const outputPath = path.join(tempDir, "out", "generated.txt");
 
   await mkdir(mockBinDir, { recursive: true });
   const mockRunpromptPath = path.join(mockBinDir, "runprompt");
@@ -96,10 +109,12 @@ test("runprompt wrapper supports env-based model/base_url/api_key configuration"
 
   const spec = await loadRunpromptSpec();
   const originalPath = process.env.PATH ?? "";
+  const originalSpecDir = process.env.MCP_SHELL_SPEC_DIR;
   const originalModel = process.env.MODEL;
   const originalBaseUrl = process.env.BASE_URL;
   const originalApiKey = process.env.API_KEY;
   process.env.PATH = `${mockBinDir}:${originalPath}`;
+  process.env.MCP_SHELL_SPEC_DIR = tempDir;
   process.env.MODEL = "openrouter/deepseek/deepseek-v3.2";
   process.env.BASE_URL = "https://openrouter.ai/api/v1";
   process.env.API_KEY = "test-api-key";
@@ -108,10 +123,10 @@ test("runprompt wrapper supports env-based model/base_url/api_key configuration"
     const result = await executeFromSpec(spec, {
       artifact_type: "script",
       requirements: "generate a shell script",
-      output_path: outputPath,
     });
 
     assert.equal(result.status, "success");
+    const outputPath = extractGeneratedPath(result.stdout);
     const outputContent = await readFile(outputPath, "utf8");
     const payload = JSON.parse(outputContent);
     assert.equal(payload.model, "openrouter/deepseek/deepseek-v3.2");
@@ -119,6 +134,11 @@ test("runprompt wrapper supports env-based model/base_url/api_key configuration"
     assert.equal(payload.api_key, "test-api-key");
   } finally {
     process.env.PATH = originalPath;
+    if (originalSpecDir === undefined) {
+      delete process.env.MCP_SHELL_SPEC_DIR;
+    } else {
+      process.env.MCP_SHELL_SPEC_DIR = originalSpecDir;
+    }
 
     if (originalModel === undefined) {
       delete process.env.MODEL;
@@ -141,7 +161,6 @@ test("runprompt wrapper supports env-based model/base_url/api_key configuration"
 test("runprompt wrapper rejects invalid dotprompt output for runprompt-prompt artifact", async () => {
   const tempDir = await mkdtemp(path.join(os.tmpdir(), "mcp-shell-runprompt-"));
   const mockBinDir = path.join(tempDir, "bin");
-  const outputPath = path.join(tempDir, "out", "invalid.prompt");
 
   await mkdir(mockBinDir, { recursive: true });
   const mockRunpromptPath = path.join(mockBinDir, "runprompt");
@@ -154,26 +173,31 @@ test("runprompt wrapper rejects invalid dotprompt output for runprompt-prompt ar
 
   const spec = await loadRunpromptSpec();
   const originalPath = process.env.PATH ?? "";
+  const originalSpecDir = process.env.MCP_SHELL_SPEC_DIR;
   process.env.PATH = `${mockBinDir}:${originalPath}`;
+  process.env.MCP_SHELL_SPEC_DIR = tempDir;
 
   try {
     const result = await executeFromSpec(spec, {
       artifact_type: "runprompt-prompt",
       requirements: "create a dotprompt",
-      output_path: outputPath,
     });
 
     assert.equal(result.status, "error");
     assert.match(result.stderr, /must start with YAML frontmatter/i);
   } finally {
     process.env.PATH = originalPath;
+    if (originalSpecDir === undefined) {
+      delete process.env.MCP_SHELL_SPEC_DIR;
+    } else {
+      process.env.MCP_SHELL_SPEC_DIR = originalSpecDir;
+    }
   }
 });
 
 test("runprompt wrapper accepts valid dotprompt output and writes file", async () => {
   const tempDir = await mkdtemp(path.join(os.tmpdir(), "mcp-shell-runprompt-"));
   const mockBinDir = path.join(tempDir, "bin");
-  const outputPath = path.join(tempDir, "out", "valid.prompt");
 
   await mkdir(mockBinDir, { recursive: true });
   const mockRunpromptPath = path.join(mockBinDir, "runprompt");
@@ -186,20 +210,95 @@ test("runprompt wrapper accepts valid dotprompt output and writes file", async (
 
   const spec = await loadRunpromptSpec();
   const originalPath = process.env.PATH ?? "";
+  const originalSpecDir = process.env.MCP_SHELL_SPEC_DIR;
   process.env.PATH = `${mockBinDir}:${originalPath}`;
+  process.env.MCP_SHELL_SPEC_DIR = tempDir;
 
   try {
     const result = await executeFromSpec(spec, {
       artifact_type: "runprompt-prompt",
       requirements: "create a dotprompt",
-      output_path: outputPath,
     });
 
     assert.equal(result.status, "success");
+    const outputPath = extractGeneratedPath(result.stdout);
     const outputContent = await readFile(outputPath, "utf8");
     assert.match(outputContent, /^---[\s\S]*?\nmodel:\s+/);
     assert.match(outputContent, /\n---\nSummarize: \{\{text\}\}/);
   } finally {
     process.env.PATH = originalPath;
+    if (originalSpecDir === undefined) {
+      delete process.env.MCP_SHELL_SPEC_DIR;
+    } else {
+      process.env.MCP_SHELL_SPEC_DIR = originalSpecDir;
+    }
+  }
+});
+
+test("runprompt wrapper requires MCP_SHELL_SPEC_DIR to be configured", async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "mcp-shell-runprompt-"));
+  const mockBinDir = path.join(tempDir, "bin");
+
+  await mkdir(mockBinDir, { recursive: true });
+  const mockRunpromptPath = path.join(mockBinDir, "runprompt");
+  await writeFile(mockRunpromptPath, "#!/usr/bin/env bash\nset -euo pipefail\nprintf 'ok\\n'\n", "utf8");
+  await chmod(mockRunpromptPath, 0o755);
+
+  const spec = await loadRunpromptSpec();
+  const originalPath = process.env.PATH ?? "";
+  const originalSpecDir = process.env.MCP_SHELL_SPEC_DIR;
+  process.env.PATH = `${mockBinDir}:${originalPath}`;
+  delete process.env.MCP_SHELL_SPEC_DIR;
+
+  try {
+    const result = await executeFromSpec(spec, {
+      artifact_type: "script",
+      requirements: "generate a shell script",
+    });
+
+    assert.equal(result.status, "error");
+    assert.match(result.stderr, /MCP_SHELL_SPEC_DIR is not configured/i);
+  } finally {
+    process.env.PATH = originalPath;
+    if (originalSpecDir === undefined) {
+      delete process.env.MCP_SHELL_SPEC_DIR;
+    } else {
+      process.env.MCP_SHELL_SPEC_DIR = originalSpecDir;
+    }
+  }
+});
+
+test("runprompt wrapper writes generated files under MCP_SHELL_SPEC_DIR by artifact type", async () => {
+  const tempDir = await mkdtemp(path.join(os.tmpdir(), "mcp-shell-runprompt-"));
+  const mockBinDir = path.join(tempDir, "bin");
+
+  await mkdir(mockBinDir, { recursive: true });
+  const mockRunpromptPath = path.join(mockBinDir, "runprompt");
+  await writeFile(mockRunpromptPath, "#!/usr/bin/env bash\nset -euo pipefail\nprintf 'ok\\n'\n", "utf8");
+  await chmod(mockRunpromptPath, 0o755);
+
+  const spec = await loadRunpromptSpec();
+  const originalPath = process.env.PATH ?? "";
+  const originalSpecDir = process.env.MCP_SHELL_SPEC_DIR;
+  process.env.PATH = `${mockBinDir}:${originalPath}`;
+  process.env.MCP_SHELL_SPEC_DIR = tempDir;
+
+  try {
+    const result = await executeFromSpec(spec, {
+      artifact_type: "mcp-shell-yaml",
+      requirements: "generate a shell script",
+    });
+
+    assert.equal(result.status, "success");
+    const generatedPath = extractGeneratedPath(result.stdout);
+    assert.ok(generatedPath.startsWith(path.join(tempDir, "generated-artifacts", "mcp-shell-yaml")));
+    assert.match(generatedPath, /\.ya?ml$/i);
+  } finally {
+    process.env.PATH = originalPath;
+    if (originalSpecDir === undefined) {
+      delete process.env.MCP_SHELL_SPEC_DIR;
+    } else {
+      process.env.MCP_SHELL_SPEC_DIR = originalSpecDir;
+    }
   }
 });

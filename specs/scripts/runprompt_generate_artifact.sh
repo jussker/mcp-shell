@@ -3,10 +3,9 @@ set -euo pipefail
 
 artifact_type="${1:-}"
 requirements="${2:-}"
-output_path="${3:-}"
 
-if [[ -z "${artifact_type}" || -z "${requirements}" || -z "${output_path}" ]]; then
-  echo "usage: runprompt_generate_artifact.sh <artifact_type> <requirements> <output_path>" >&2
+if [[ -z "${artifact_type}" || -z "${requirements}" ]]; then
+  echo "usage: runprompt_generate_artifact.sh <artifact_type> <requirements>" >&2
   exit 2
 fi
 
@@ -18,6 +17,36 @@ case "${artifact_type}" in
     exit 2
     ;;
 esac
+
+if [[ -z "${MCP_SHELL_SPEC_DIR:-}" ]]; then
+  echo "MCP_SHELL_SPEC_DIR is not configured. Please set MCP_SHELL_SPEC_DIR to an existing spec directory." >&2
+  exit 2
+fi
+
+resolve_output_path() {
+  python3 - "${MCP_SHELL_SPEC_DIR}" "${artifact_type}" <<'PY'
+import datetime
+import sys
+from pathlib import Path
+
+spec_dir = Path(sys.argv[1]).resolve(strict=False)
+artifact_type = sys.argv[2]
+
+mapping = {
+    "script": ("generated-artifacts/scripts", "sh"),
+    "mcp-shell-yaml": ("generated-artifacts/mcp-shell-yaml", "yaml"),
+    "runprompt-prompt": ("generated-artifacts/runprompt-prompts", "prompt"),
+}
+subdir, ext = mapping[artifact_type]
+
+ts = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%S%fZ")
+output_path = spec_dir / subdir / f"artifact-{ts}.{ext}"
+output_path.parent.mkdir(parents=True, exist_ok=True)
+print(output_path)
+PY
+}
+
+output_path="$(resolve_output_path)"
 
 if ! command -v runprompt >/dev/null 2>&1; then
   echo "runprompt command not found in PATH" >&2

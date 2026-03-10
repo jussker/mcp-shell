@@ -3,10 +3,9 @@ tool:
   name: runprompt__generate_artifact
   description: |-
     /**
-     * Generate one file with runprompt and save it to a target path.
+     * Generate one file with runprompt and save it under MCP_SHELL_SPEC_DIR.
      * @param artifact_type Artifact type: script, mcp-shell-yaml, or runprompt-prompt.
      * @param requirements Natural language requirements used to generate file content.
-     * @param output_path Absolute or relative path where generated content will be written.
      */
   input:
     properties:
@@ -16,10 +15,7 @@ tool:
       requirements:
         type: string
         description: Natural language requirements for the generated file.
-      output_path:
-        type: string
-        description: File path where generated content will be saved.
-    required: [artifact_type, requirements, output_path]
+    required: [artifact_type, requirements]
   output:
     type: object
     properties:
@@ -40,4 +36,3 @@ execution:
     args:
       - "{{artifact_type}}"
       - "{{requirements}}"
-      - "{{output_path}}"

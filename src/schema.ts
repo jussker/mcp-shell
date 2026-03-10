@@ -3,6 +3,14 @@ import type { ToolInputSchema } from "./types.js";
 
 export const MCP_RESPONSE_MODE_PARAM = "__mcp_response_mode";
 const MCP_RESPONSE_MODES = ["content", "structuredContent"] as const;
+const MCP_RESPONSE_MODE_TSDOC = `@param ${MCP_RESPONSE_MODE_PARAM} Optional response mode: content (default) or structuredContent.`;
+
+export function appendResponseModeParamDoc(description: string): string {
+  if (description.includes(`@param ${MCP_RESPONSE_MODE_PARAM}`)) {
+    return description;
+  }
+  return `${description}\n${MCP_RESPONSE_MODE_TSDOC}`;
+}
 
 export function buildInputSchema(input: ToolInputSchema): ZodTypeAny {
   const properties = input.properties ?? {};
