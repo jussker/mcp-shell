@@ -92,7 +92,9 @@ execution:
   - 通过 YAML `execution.env.fromRuntime` 映射 `RUNPROMPT_MODEL`（兼容 `MODEL`）
   - 通过 YAML `execution.env.fromRuntime` 映射 `RUNPROMPT_BASE_URL`（兼容 `OPENAI_BASE_URL`、`OPENAI_API_BASE`、`BASE_URL`）
   - 通过 YAML `execution.env.fromRuntime` 映射 `RUNPROMPT_OPENROUTER_API_KEY`（兼容 `OPENROUTER_API_KEY`、`API_KEY`）
+- 脚本在调用 `runprompt` 前会把 `RUNPROMPT_*` 自动回填为常见 CLI 变量名（`MODEL`、`BASE_URL`、`OPENAI_BASE_URL`、`OPENAI_API_BASE`、`OPENROUTER_API_KEY`、`API_KEY`），以兼容不同版本的 `runprompt` 配置约定。
 - `output_path` 不再作为 `runprompt__generate_artifact` 输入参数暴露；脚本会自动写入 `MCP_SHELL_SPEC_DIR/generated-artifacts/<artifact_type>/` 目录。
+- 调试请求提示词：设置 `RUNPROMPT_DEBUG_PROMPT=1` 后，脚本会在请求前打印渲染后的完整提示词，并启用 `runprompt -v`。
 
 ## 4) 运行方式
 
@@ -103,6 +105,16 @@ npm start
 ```
 
 默认从 `./specs` 加载工具定义；可通过 `MCP_SHELL_SPEC_DIR` 覆盖。
+
+### 4.0 Spec 版本控制与自动升级
+
+- 启动时会自动执行 spec 引导（bootstrap）：
+  - 当 `MCP_SHELL_SPEC_DIR` 目录为空时，自动把内置 `specs/` 复制到该目录；
+  - 当目标目录版本低于当前 `mcp-shell` 版本时，自动同步内置预设并升级；
+  - 版本元数据写入 `MCP_SHELL_SPEC_DIR/.mcp-shell/spec-version.json`。
+- 预设与用户产物隔离：
+  - 预设 spec 由内置 `specs/` 维护并按版本同步；
+  - 用户生成产物位于 `MCP_SHELL_SPEC_DIR/generated-artifacts/`，升级不会清理该目录。
 
 ### 4.1 通过 GitHub 仓库直接 `npx -y` 启动（stdio）
 
@@ -154,8 +166,8 @@ npx -y github:jussker/mcp-shell --transport streamable-http --host 127.0.0.1 --p
         "MCP_SHELL_SPEC_DIR": "/absolute/path/to/specs",
         "MCP_SHELL_STORAGE_ROOT": "/absolute/path/to/storage",
         "RUNPROMPT_MODEL": "openrouter/deepseek/deepseek-v3.2",
-        "BASE_URL": "https://openrouter.ai/api/v1",
-        "API_KEY": "sk-or-v1-xxxx",
+        "RUNPROMPT_BASE_URL": "https://openrouter.ai/api/v1",
+        "RUNPROMPT_OPENROUTER_API_KEY": "sk-or-v1-xxxx",
         "http_proxy": "http://127.0.0.1:8890",
         "HTTP_PROXY": "http://127.0.0.1:8890",
         "https_proxy": "http://127.0.0.1:8890",

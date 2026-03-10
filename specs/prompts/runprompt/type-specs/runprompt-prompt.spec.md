@@ -25,3 +25,26 @@ Template rules (Dotprompt/Handlebars-aligned):
 Compatibility constraints for mcp-shell runprompt flow:
 - Prefer variables that can be passed through JSON input fields.
 - If generating structured output, keep schema and body instructions consistent.
+
+One-shot reference (MUST follow this shape when artifact_type=runprompt-prompt):
+
+Input requirements (example):
+- "创建一个摘要提示词，输入字段为 text，输出为 text。"
+
+Expected output (example, output-only):
+---
+name: summarize-text
+model: openrouter/deepseek/deepseek-v3.2
+input:
+  schema:
+    text: string
+output:
+  format: text
+---
+Summarize the following text in Chinese:
+{{text}}
+
+Strict output constraints:
+- Do NOT output any explanation before frontmatter.
+- Do NOT output markdown fences like ``` or ```prompt.
+- Do NOT output multiple candidate prompts.
