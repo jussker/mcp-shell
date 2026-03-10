@@ -4,6 +4,19 @@ import type { ExecutionResult, ShellToolSpec } from "./types.js";
 const DEFAULT_TIMEOUT_MS = 30_000;
 const DEFAULT_MAX_OUTPUT_BYTES = 1_048_576;
 
+function terminateChild(child: ReturnType<typeof spawn>): void {
+  child.kill("SIGTERM");
+  setTimeout(() => {
+    if (child.exitCode === null) {
+      child.kill("SIGKILL");
+    }
+  }, 500);
+}
+
+function appendError(existing: string, message: string): string {
+  return existing ? `${existing}\n${message}` : message;
+}
+
 function renderTemplate(template: string, args: Record<string, unknown>): string {
   return template.replace(/\{\{\s*([\w.-]+)\s*\}\}/g, (_, key) => {
     const value = args[key];
@@ -82,32 +95,45 @@ export async function executeFromSpec(spec: ShellToolSpec, args: Record<string, 
     let stderr = "";
     let exceeded = false;
 
+    const appendChunk = (
+      target: "stdout" | "stderr",
+      chunk: Buffer,
+    ): void => {
+      const content = chunk.toString("utf8");
+      if (target === "stdout") {
+        stdout += content;
+        if (Buffer.byteLength(stdout, "utf8") > plan.maxOutputBytes) {
+          exceeded = true;
+          terminateChild(child);
+        }
+        return;
+      }
+
+      stderr += content;
+      if (Buffer.byteLength(stderr, "utf8") > plan.maxOutputBytes) {
+        exceeded = true;
+        terminateChild(child);
+      }
+    };
+
     const timer = setTimeout(() => {
-      child.kill("SIGKILL");
-      stderr = `${stderr}\nProcess timed out after ${plan.timeoutMs}ms`.trim();
+      terminateChild(child);
+      stderr = appendError(stderr, `Process timed out after ${plan.timeoutMs}ms`);
     }, plan.timeoutMs);
 
     child.stdout.on("data", (chunk: Buffer) => {
-      stdout += chunk.toString("utf8");
-      if (Buffer.byteLength(stdout, "utf8") > plan.maxOutputBytes) {
-        exceeded = true;
-        child.kill("SIGKILL");
-      }
+      appendChunk("stdout", chunk);
     });
 
     child.stderr.on("data", (chunk: Buffer) => {
-      stderr += chunk.toString("utf8");
-      if (Buffer.byteLength(stderr, "utf8") > plan.maxOutputBytes) {
-        exceeded = true;
-        child.kill("SIGKILL");
-      }
+      appendChunk("stderr", chunk);
     });
 
     child.on("close", (code) => {
       clearTimeout(timer);
       const status = code === 0 && !exceeded ? "success" : "error";
       if (exceeded) {
-        stderr = `${stderr}\nOutput exceeded maxOutputBytes (${plan.maxOutputBytes}).`.trim();
+        stderr = appendError(stderr, `Output exceeded maxOutputBytes (${plan.maxOutputBytes}).`);
       }
 
       resolve({

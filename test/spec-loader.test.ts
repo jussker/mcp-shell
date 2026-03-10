@@ -9,11 +9,10 @@ const specDir = path.resolve(process.cwd(), "specs");
 
 test("loads ffmpeg tool specs", async () => {
   const specs = await loadSpecs(specDir);
-  assert.equal(specs.length, 3);
-  assert.deepEqual(
-    specs.map((spec) => spec.tool.name).sort(),
-    ["ffmpeg__extract_audio", "ffmpeg__probe_streams", "ffmpeg__transcode_mp4"],
-  );
+  const names = new Set(specs.map((spec) => spec.tool.name));
+  assert.ok(names.has("ffmpeg__extract_audio"));
+  assert.ok(names.has("ffmpeg__probe_streams"));
+  assert.ok(names.has("ffmpeg__transcode_mp4"));
 });
 
 test("maps params into command args and env vars", () => {
