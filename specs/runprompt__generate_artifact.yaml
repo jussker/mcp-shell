@@ -1,0 +1,60 @@
+apiVersion: v1
+tool:
+  name: runprompt__generate_artifact
+  description: |-
+    /**
+     * Generate one file with runprompt and save it to a target path.
+     * @param artifact_type Artifact type: script, mcp-shell-yaml, or runprompt-prompt.
+     * @param requirements Natural language requirements used to generate file content.
+     * @param output_path Absolute or relative path where generated content will be written.
+     * @param model Optional runprompt model override (for example openrouter/deepseek/deepseek-v3.2).
+     * @param base_url Optional runprompt base URL override.
+     * @param openrouter_api_key Optional OpenRouter API key.
+     */
+  input:
+    properties:
+      artifact_type:
+        type: string
+        description: "Artifact type: script, mcp-shell-yaml, or runprompt-prompt."
+      requirements:
+        type: string
+        description: Natural language requirements for the generated file.
+      output_path:
+        type: string
+        description: File path where generated content will be saved.
+      model:
+        type: string
+        description: Optional model override.
+      base_url:
+        type: string
+        description: Optional base URL override.
+      openrouter_api_key:
+        type: string
+        description: Optional OpenRouter API key.
+    required: [artifact_type, requirements, output_path]
+  output:
+    type: object
+    properties:
+      status: { type: string }
+      exit_code: { type: number }
+      stdout: { type: string }
+      stderr: { type: string }
+      command: { type: string }
+      execution_time_ms: { type: number }
+execution:
+  shell:
+    mode: direct
+  env:
+    fromParams:
+      RUNPROMPT_MODEL: model
+      RUNPROMPT_BASE_URL: base_url
+      RUNPROMPT_OPENROUTER_API_KEY: openrouter_api_key
+  timeoutMs: 120000
+  maxOutputBytes: 1048576
+  script:
+    path: ./scripts/runprompt_generate_artifact.sh
+    interpreter: bash
+    args:
+      - "{{artifact_type}}"
+      - "{{requirements}}"
+      - "{{output_path}}"

@@ -80,6 +80,12 @@ execution:
 - `ffmpeg__transcode_mp4.yaml`：转码为 H.264/AAC MP4
 - `ffmpeg__probe_streams.yaml`：使用 `ffprobe` 输出媒体元数据
 - `shell__run_script_echo.yaml`：通过 YAML 配置执行脚本示例
+- `runprompt__generate_artifact.yaml`：通过 `runprompt` 生成脚本 / mcp-shell YAML / runprompt 提示词文件
+
+`runprompt__generate_artifact.yaml` 使用：
+
+- `specs/prompts/runprompt/generate_artifact.prompt`（runprompt 提示词模板）
+- `specs/scripts/runprompt_generate_artifact.sh`（调用 runprompt 并写入目标文件）
 
 ## 4) 运行方式
 
