@@ -3,8 +3,12 @@
   "version": "1.0.0",
   "description": "[![Trust Score](https://archestra.ai/mcp-catalog/api/badge/quality/sonirico/mcp-shell)](https://archestra.ai/mcp-catalog/sonirico__mcp-shell) [![glama](https://glama.ai/mcp/servers/@sonirico/mcp-shell/badge)](https://glama.ai/mcp/servers/@sonirico/mcp-shell)",
   "main": "dist/src/index.js",
+  "bin": {
+    "mcp-shell": "dist/src/index.js"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.json",
+    "prepare": "npm run build",
     "start": "node dist/src/index.js",
     "dev": "tsx src/index.ts",
     "test": "tsx --test test/**/*.test.ts"
