@@ -5,7 +5,6 @@ import { readFile } from "node:fs/promises";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
-import { VERSION as MCP_USE_VERSION } from "mcp-use";
 import { executeFromSpec } from "./executor.js";
 import { formatExecutionResultForMcp } from "./mcp-response.js";
 import { buildInputSchema, MCP_RESPONSE_MODE_PARAM } from "./schema.js";
@@ -65,7 +64,7 @@ async function main(): Promise<void> {
     const transport = new StdioServerTransport();
     await server.connect(transport);
     process.stderr.write(
-      `mcp-shell started with ${specs.length} tools from ${specDir} via stdio (mcp-use ${MCP_USE_VERSION})\n`,
+      `mcp-shell started with ${specs.length} tools from ${specDir} via stdio (version ${version})\n`,
     );
     return;
   }
@@ -103,7 +102,7 @@ async function main(): Promise<void> {
   });
 
   process.stderr.write(
-    `mcp-shell started with ${specs.length} tools from ${specDir} via streamable-http at http://${startupOptions.host}:${startupOptions.port}${startupOptions.httpPath} (mcp-use ${MCP_USE_VERSION})\n`,
+    `mcp-shell started with ${specs.length} tools from ${specDir} via streamable-http at http://${startupOptions.host}:${startupOptions.port}${startupOptions.httpPath} (version ${version})\n`,
   );
 }
 

@@ -2,15 +2,9 @@
 
 基于 TypeScript 的 MCP Shell Server：通过 **单文件 YAML 规范** 将具体 shell 命令映射为标准 MCP 工具。
 
-## 1) mcp-use 依赖与源码阅读
+## 1) 项目定位
 
-本项目已引入依赖：
-
-- `mcp-use`（npm）
-
-用于与 MCP 生态保持兼容，并在启动日志中标识 `mcp-use` 版本。
-
-> 备注：`mcp-use` npm 包元数据中已包含其仓库地址 `https://github.com/mcp-use/mcp-use.git`，可按需在本地单独拉取该仓库做源码阅读。
+本项目是一个轻量的 MCP Shell Server，启动日志会标识当前 `mcp-shell` 版本。
 
 ## 2) YAML Spec 设计
 
@@ -98,8 +92,6 @@ npm install
 npm run build
 npm start
 ```
-
-> 兼容性说明：为避免在 Node `22.21.x` 下安装时触发 `posthog-node@5.28.x` 的 engine 警告，项目通过 `overrides` 固定了 `posthog-node@5.21.0`（要求 `node >=20`）。
 
 默认从 `./specs` 加载工具定义；可通过 `MCP_SHELL_SPEC_DIR` 覆盖。
 
