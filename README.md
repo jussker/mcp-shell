@@ -99,6 +99,8 @@ npm run build
 npm start
 ```
 
+> 兼容性说明：为避免在 Node `22.21.x` 下安装时触发 `posthog-node@5.28.x` 的 engine 警告，项目通过 `overrides` 固定了 `posthog-node@5.21.0`（要求 `node >=20`）。
+
 默认从 `./specs` 加载工具定义；可通过 `MCP_SHELL_SPEC_DIR` 覆盖。
 
 ### 4.1 通过 GitHub 仓库直接 `npx -y` 启动（stdio）
