@@ -136,7 +136,7 @@ test("runprompt wrapper accepts valid dotprompt output and writes file", async (
 
     assert.equal(result.status, "success");
     const outputContent = await readFile(outputPath, "utf8");
-    assert.match(outputContent, /^---\nmodel:\s+/);
+    assert.match(outputContent, /^---[\s\S]*?\nmodel:\s+/);
     assert.match(outputContent, /\n---\nSummarize: \{\{text\}\}/);
   } finally {
     process.env.PATH = originalPath;

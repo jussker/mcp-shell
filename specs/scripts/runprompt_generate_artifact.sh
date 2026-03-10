@@ -35,7 +35,7 @@ validate_runprompt_prompt_output() {
     return 2
   fi
 
-  if [[ "${content}" == '```'* || "${content}" == *$'\n```'* ]]; then
+  if printf '%s\n' "${content}" | grep -q '```'; then
     echo "runprompt-prompt output must not contain markdown fences" >&2
     return 2
   fi
@@ -51,8 +51,12 @@ validate_runprompt_prompt_output() {
     echo "runprompt-prompt output must contain closing YAML frontmatter delimiter (---)" >&2
     return 2
   fi
+  if (( second_delim_line < 2 )); then
+    echo "runprompt-prompt frontmatter delimiter positions are invalid" >&2
+    return 2
+  fi
 
-  if ! printf '%s\n' "${content}" | sed -n "2,$((second_delim_line - 1))p" | grep -Eq '^model:[[:space:]]*[^[:space:]].*$'; then
+  if ! printf '%s\n' "${content}" | sed -n "2,$((second_delim_line - 1))p" | grep -Eq '^model:[[:space:]]*[^[:space:]]'; then
     echo "runprompt-prompt frontmatter must include a non-empty model key" >&2
     return 2
   fi
