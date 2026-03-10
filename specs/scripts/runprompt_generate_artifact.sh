@@ -48,10 +48,56 @@ PY
 
 output_path="$(resolve_output_path)"
 
+is_truthy() {
+  local value="${1:-}"
+  local normalized
+  normalized="$(printf '%s' "${value}" | tr '[:upper:]' '[:lower:]')"
+  case "${normalized}" in
+    1|true|yes|on)
+      return 0
+      ;;
+    *)
+      return 1
+      ;;
+  esac
+}
+
+normalize_runprompt_env() {
+  if [[ -n "${RUNPROMPT_MODEL:-}" && -z "${MODEL:-}" ]]; then
+    export MODEL="${RUNPROMPT_MODEL}"
+  fi
+
+  if [[ -n "${RUNPROMPT_BASE_URL:-}" ]]; then
+    if [[ -z "${BASE_URL:-}" ]]; then
+      export BASE_URL="${RUNPROMPT_BASE_URL}"
+    fi
+    if [[ -z "${OPENAI_BASE_URL:-}" ]]; then
+      export OPENAI_BASE_URL="${RUNPROMPT_BASE_URL}"
+    fi
+    if [[ -z "${OPENAI_API_BASE:-}" ]]; then
+      export OPENAI_API_BASE="${RUNPROMPT_BASE_URL}"
+    fi
+  fi
+
+  if [[ -n "${RUNPROMPT_OPENROUTER_API_KEY:-}" ]]; then
+    if [[ -z "${OPENROUTER_API_KEY:-}" ]]; then
+      export OPENROUTER_API_KEY="${RUNPROMPT_OPENROUTER_API_KEY}"
+    fi
+    if [[ -z "${API_KEY:-}" ]]; then
+      export API_KEY="${RUNPROMPT_OPENROUTER_API_KEY}"
+    fi
+    if [[ -z "${OPENAI_API_KEY:-}" ]]; then
+      export OPENAI_API_KEY="${RUNPROMPT_OPENROUTER_API_KEY}"
+    fi
+  fi
+}
+
 if ! command -v runprompt >/dev/null 2>&1; then
   echo "runprompt command not found in PATH" >&2
   exit 127
 fi
+
+normalize_runprompt_env
 
 script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 prompt_file="${script_dir}/../prompts/runprompt/generate_artifact.prompt"
@@ -96,6 +142,63 @@ validate_runprompt_prompt_output() {
   fi
 }
 
+normalize_runprompt_prompt_output() {
+  local content="$1"
+  printf '%s' "${content}" | python3 -c '
+import sys
+import re
+
+text = sys.stdin.read()
+text_without_fences = re.sub(r"(?m)^```[^\n]*\n?", "", text)
+lines = text_without_fences.splitlines()
+
+start_index = None
+second_delim_index = None
+for index, line in enumerate(lines):
+  if line.strip() != "---":
+    continue
+  if start_index is None:
+    start_index = index
+    continue
+  second_delim_index = index
+  break
+
+if start_index is not None and second_delim_index is not None:
+  normalized = "\n".join(lines[start_index:]).strip("\n")
+  print(normalized, end="")
+else:
+  print(text_without_fences.strip("\n"), end="")
+'
+}
+
+debug_print_rendered_prompt() {
+  local prompt_file_path="$1"
+  local current_artifact_type="$2"
+  local current_requirements="$3"
+  local current_type_spec="$4"
+
+  python3 - "${prompt_file_path}" "${current_artifact_type}" "${current_requirements}" "${current_type_spec}" <<'PY' >&2
+import sys
+from pathlib import Path
+
+prompt_path = Path(sys.argv[1])
+artifact_type = sys.argv[2]
+requirements = sys.argv[3]
+type_spec = sys.argv[4]
+
+template = prompt_path.read_text(encoding="utf-8")
+rendered = (
+    template.replace("{{artifact_type}}", artifact_type)
+    .replace("{{requirements}}", requirements)
+    .replace("{{type_spec}}", type_spec)
+)
+
+print("=== runprompt debug: rendered prompt begin ===")
+print(rendered)
+print("=== runprompt debug: rendered prompt end ===")
+PY
+}
+
 if [[ ! -f "${prompt_file}" ]]; then
   echo "prompt file not found: ${prompt_file}" >&2
   exit 2
@@ -125,6 +228,12 @@ fi
 mkdir -p "$(dirname "${output_path}")"
 type_spec="$(cat "${type_spec_file}")"
 
+debug_mode_enabled=0
+if is_truthy "${RUNPROMPT_DEBUG_PROMPT:-}"; then
+  debug_mode_enabled=1
+  debug_print_rendered_prompt "${prompt_file}" "${artifact_type}" "${requirements}" "${type_spec}"
+fi
+
 input_json="$(python3 - "${artifact_type}" "${requirements}" "${type_spec}" <<'PY'
 import json
 import sys
@@ -145,9 +254,14 @@ print(
 PY
 )"
 
-generated_content="$(runprompt "${prompt_file}" "${input_json}")"
+if (( debug_mode_enabled == 1 )); then
+  generated_content="$(runprompt -v "${prompt_file}" "${input_json}")"
+else
+  generated_content="$(runprompt "${prompt_file}" "${input_json}")"
+fi
 
 if [[ "${artifact_type}" == "runprompt-prompt" ]]; then
+  generated_content="$(normalize_runprompt_prompt_output "${generated_content}")"
   validate_runprompt_prompt_output "${generated_content}"
 fi
 
