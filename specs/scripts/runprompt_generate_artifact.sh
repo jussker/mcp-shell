@@ -43,6 +43,10 @@ case "${artifact_type}" in
   runprompt-prompt)
     type_spec_file="${type_specs_dir}/runprompt-prompt.spec.md"
     ;;
+  *)
+    echo "unsupported artifact_type for type spec lookup: ${artifact_type}" >&2
+    exit 2
+    ;;
 esac
 
 if [[ ! -f "${type_spec_file}" ]]; then
