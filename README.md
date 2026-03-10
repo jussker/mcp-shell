@@ -109,6 +109,18 @@ npm start
 npx -y github:jussker/mcp-shell --transport stdio
 ```
 
+如果会使用 `runprompt__generate_artifact` 工具，需要先安装 `runprompt`（脚本会直接调用 `runprompt` 命令）：
+
+```bash
+# Using uv (recommended)
+uv pip install git+https://github.com/chr15m/runprompt
+
+# Using pip
+pip install "git+https://github.com/chr15m/runprompt.git"
+```
+
+如未安装会报错：`runprompt command not found in PATH`（exit code `127`）。
+
 ### 4.2 启动参数与环境变量
 
 - `--transport` / `MCP_SHELL_TRANSPORT`：`stdio`（默认）或 `streamable-http`
@@ -136,7 +148,15 @@ npx -y github:jussker/mcp-shell --transport streamable-http --host 127.0.0.1 --p
       "command": "npx",
       "args": ["-y", "github:jussker/mcp-shell", "--transport", "stdio"],
       "env": {
-        "MCP_SHELL_SPEC_DIR": "/absolute/path/to/specs"
+        "MCP_SHELL_SPEC_DIR": "/absolute/path/to/specs",
+        "MCP_SHELL_STORAGE_ROOT": "/absolute/path/to/storage",
+        "RUNPROMPT_MODEL": "openrouter/deepseek/deepseek-v3.2",
+        "BASE_URL": "https://openrouter.ai/api/v1",
+        "API_KEY": "sk-or-v1-xxxx",
+        "http_proxy": "http://127.0.0.1:8890",
+        "HTTP_PROXY": "http://127.0.0.1:8890",
+        "https_proxy": "http://127.0.0.1:8890",
+        "HTTPS_PROXY": "http://127.0.0.1:8890"
       }
     }
   }

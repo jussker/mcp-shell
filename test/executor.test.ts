@@ -83,3 +83,46 @@ test("executeFromSpec supports script execution with interpreter", async () => {
   assert.equal(result.status, "success");
   assert.equal(result.stdout, "script:ok");
 });
+
+test("executeFromSpec propagates parent environment variables to script", async () => {
+  const dir = await mkdtemp(path.join(os.tmpdir(), "mcp-shell-script-env-"));
+  const scriptPath = path.join(dir, "env.js");
+  await writeFile(scriptPath, "process.stdout.write(process.env.TEST_INHERITED_VAR ?? '');", "utf8");
+
+  const spec: ShellToolSpec = {
+    apiVersion: "v1",
+    tool: {
+      name: "script_env",
+      description: "/** script env */",
+      input: { properties: {} },
+      output: {
+        type: "object",
+        properties: {},
+      },
+    },
+    execution: {
+      script: {
+        path: "./env.js",
+        interpreter: "node",
+      },
+      timeoutMs: 5_000,
+    },
+    __meta: {
+      specDir: dir,
+    },
+  };
+
+  const original = process.env.TEST_INHERITED_VAR;
+  process.env.TEST_INHERITED_VAR = "inherited-ok";
+  try {
+    const result = await executeFromSpec(spec, {});
+    assert.equal(result.status, "success");
+    assert.equal(result.stdout, "inherited-ok");
+  } finally {
+    if (original === undefined) {
+      delete process.env.TEST_INHERITED_VAR;
+    } else {
+      process.env.TEST_INHERITED_VAR = original;
+    }
+  }
+});
