@@ -41,10 +41,10 @@ function shellQuote(value: string): string {
   return `'${value.replace(/'/g, `'\\''`)}'`;
 }
 
-function resolveShell(spec: ShellToolSpec): { executable: string; args: string[] } {
+function resolveShell(spec: ShellToolSpec, args: Record<string, unknown>): { executable: string; args: string[] } {
   const shell = spec.execution.shell;
   if (!shell || shell.mode === "direct") {
-    const executable = resolveCommandTarget(spec, {}).commandExecutable;
+    const executable = resolveCommandTarget(spec, args).commandExecutable;
     return { executable, args: [] };
   }
 
@@ -76,7 +76,7 @@ function resolveCommandTarget(
   const interpreter = spec.execution.script.interpreter;
   if (interpreter) {
     return {
-      commandExecutable: renderTemplate(interpreter, args),
+      commandExecutable: interpreter,
       commandArgs: [scriptPath, ...scriptArgs],
     };
   }
@@ -105,7 +105,7 @@ export function buildExecutionPlan(spec: ShellToolSpec, args: Record<string, unk
   }
 
   const commandDisplay = [commandExecutable, ...commandArgs].map(shellQuote).join(" ");
-  const shell = resolveShell(spec);
+  const shell = resolveShell(spec, args);
   const launchArgs =
     spec.execution.shell?.mode === "shell"
       ? [...shell.args, commandDisplay]
